@@ -1,166 +1,89 @@
 {% extends "base.html" %}
-{% block title %}Nouveau mouvement{% endblock %}
+{% block title %}Mouvements{% endblock %}
 {% block content %}
 
-<h2>Nouveau mouvement</h2>
+<h2>Mouvements</h2>
 
-<form method="post" action="{{ url_for('movement_add') }}" class="card">
-  <div class="field">
-    <label for="dt">Date</label>
-    <input id="dt" name="dt" type="date" value="{{ today }}" required>
-  </div>
+<a class="btn primary block" href="{{ url_for('movement_add') }}">+ Ajouter un mouvement</a>
 
-  <div class="field">
-    <label>Type</label>
-    <div class="segmented">
-      <label>
-        <input type="radio" name="mtype" value="Livraison" checked>
-        <span>Livraison</span>
-      </label>
-      <label>
-        <input type="radio" name="mtype" value="Retour">
-        <span>Retour</span>
-      </label>
+<div class="list">
+  {% for m in moves %}
+  <article class="item card">
+    <header class="item-head">
+      <div class="pill {{ 'out' if m.mtype=='Livraison' else 'in' }}">{{ m.mtype }}</div>
+      <div class="date">{{ m.dt.strftime('%d/%m/%Y') }}</div>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="label">Client</div>
+        <div class="value">{{ m.client.name }}</div>
+      </div>
+      <div>
+        <div class="label">Bière</div>
+        <div class="value">{{ m.beer.name }} — {{ m.beer.volume }}</div>
+      </div>
+      <div>
+        <div class="label">Quantité</div>
+        <div class="value">{{ m.qty }}</div>
+      </div>
     </div>
-  </div>
 
-  <div class="field">
-    <label for="client_id">Client</label>
-    <select id="client_id" name="client_id" required>
-      {% for c in clients %}
-      <option value="{{ c.id }}">{{ c.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
+    {% set beer_total = m.beer_total %}
+    {% set cons_total = m.consigne_total %}
+    {% set total_ttc = m.total_ttc %}
 
-  <div class="field">
-    <label for="beer_id">Bière</label>
-    <select id="beer_id" name="beer_id" required>
-      <option value="" disabled selected>Choisir une bière…</option>
-      {% for b in beers %}
-      <option
-        value="{{ b.id }}"
-        data-price="{{ "%.2f"|format(b.price_ttc) }}"
-        data-name="{{ b.name }}"
-        data-vol="{{ b.volume }}"
-      >
-        {{ b.name }} — {{ b.volume }} — {{ "%.2f"|format(b.price_ttc) }} €
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-
-  <div class="field">
-    <label for="qty">Quantité (fûts)</label>
-    <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
-  </div>
-
-  <div class="field">
-    <label for="notes">Notes</label>
-    <textarea id="notes" name="notes" rows="2" placeholder="Optionnel…"></textarea>
-  </div>
-
-  <div class="card compact" id="resume">
-    <div class="row">
-      <span>Bière (TTC / fût)</span>
-      <strong id="beer_unit">—</strong>
+    <div class="totals">
+      <div class="row">
+        <span>Bières TTC</span>
+        <strong>{{ "%.2f"|format(beer_total) }} €</strong>
+      </div>
+      <div class="row">
+        <span>Consignes</span>
+        <strong>{{ "%.2f"|format(cons_total) }} €</strong>
+      </div>
+      <div class="row big">
+        <span>Total</span>
+        <strong>{{ "%.2f"|format(total_ttc) }} €</strong>
+      </div>
     </div>
-    <div class="row">
-      <span>Consigne / fût</span>
-      <strong id="consigne_unit">30,00 €</strong>
-    </div>
-    <hr>
-    <div class="row">
-      <span>Sous-total bières</span>
-      <strong id="beer_total">—</strong>
-    </div>
-    <div class="row">
-      <span>Total consignes</span>
-      <strong id="consigne_total">—</strong>
-    </div>
-    <div class="row big">
-      <span>Total mouvement</span>
-      <strong id="grand_total">—</strong>
-    </div>
-  </div>
 
-  <button class="btn primary" type="submit">Enregistrer</button>
-</form>
+    {% if m.notes %}
+      <div class="notes">📝 {{ m.notes }}</div>
+    {% endif %}
 
-<a class="fab" href="{{ url_for('movements') }}" aria-label="Voir les mouvements">↩</a>
+    <form method="post" action="{{ url_for('movement_delete', mid=m.id) }}" onsubmit="return confirm('Supprimer ce mouvement ?');">
+      <button class="btn danger block" type="submit">Supprimer</button>
+    </form>
+  </article>
+  {% else %}
+  <p>Aucun mouvement pour le moment.</p>
+  {% endfor %}
+</div>
+
+<a class="fab" href="{{ url_for('movement_add') }}" aria-label="Ajouter">＋</a>
 
 <style>
-  .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
-  .card.compact{padding:12px}
-  form .field{display:flex;flex-direction:column;gap:6px;margin:12px 0}
-  label{font-size:.95rem;color:#333}
-  input, select, textarea{font-size:16px;padding:12px 14px;border:1px solid #e3e3e7;border-radius:12px}
-  .segmented{display:flex;background:#f2f3f7;border-radius:12px;overflow:hidden}
-  .segmented label{flex:1}
-  .segmented input{display:none}
-  .segmented span{display:block;text-align:center;padding:10px 0}
-  .segmented input:checked + span{background:#111;color:#fff}
-  .row{display:flex;justify-content:space-between;align-items:center;padding:6px 2px}
-  .row.big{font-size:1.1rem}
-  hr{border:none;border-top:1px solid #eee;margin:8px 0}
-  .btn.primary{width:100%;padding:14px 16px;border:none;border-radius:14px;background:#111;color:#fff;font-size:16px}
-  .fab{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;text-decoration:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.15)}
-  @media (min-width:700px){ form{max-width:520px;margin:auto} }
+  .btn{display:inline-block;padding:12px 14px;border-radius:12px;text-decoration:none;border:1px solid #e3e3e7;background:#fff}
+  .btn.block{display:block;width:100%;text-align:center}
+  .btn.primary{background:#111;border-color:#111;color:#fff}
+  .btn.danger{background:#ff3b30;border-color:#ff3b30;color:#fff}
+  .list{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+  .item .item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .card{background:#fff;border-radius:16px;padding:14px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .pill{padding:6px 10px;border-radius:999px;font-size:.85rem;color:#fff}
+  .pill.out{background:#0a7cff}
+  .pill.in{background:#34c759}
+  .date{font-size:.9rem;color:#666}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+  .label{font-size:.8rem;color:#666}
+  .value{font-size:1rem}
+  .totals{margin-top:8px;border-top:1px dashed #eee;padding-top:8px}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+  .row.big{font-size:1.05rem}
+  .notes{margin-top:8px;font-size:.95rem;background:#f7f7fb;border-radius:10px;padding:8px}
+  .fab{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;text-decoration:none;width:52px;height:52px;display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.15);font-size:24px}
+  @media (min-width:720px){ .list{max-width:680px;margin:auto} }
 </style>
-
-<script>
-  (function(){
-    const CONSIGNE = 30.0;
-    const beerSel = document.getElementById('beer_id');
-    const qtyEl   = document.getElementById('qty');
-    const typeEls = document.querySelectorAll('input[name="mtype"]');
-
-    const beerUnit = document.getElementById('beer_unit');
-    const consUnit = document.getElementById('consigne_unit');
-    const beerTot  = document.getElementById('beer_total');
-    const consTot  = document.getElementById('consigne_total');
-    const grand    = document.getElementById('grand_total');
-
-    consUnit.textContent = CONSIGNE.toFixed(2).replace('.', ',') + ' €';
-
-    function getSign(){
-      const t = [...typeEls].find(r=>r.checked)?.value || 'Livraison';
-      return t === 'Livraison' ? 1 : -1;
-    }
-
-    function price(){
-      const opt = beerSel.options[beerSel.selectedIndex];
-      return opt ? parseFloat(opt.dataset.price || '0') : 0;
-    }
-
-    function formatEUR(x){
-      return x.toFixed(2).replace('.', ',') + ' €';
-    }
-
-    function update(){
-      const q = parseInt(qtyEl.value || '0', 10);
-      const p = price();
-      const s = getSign();
-
-      beerUnit.textContent = p ? formatEUR(p) : '—';
-
-      const beerTotal = s * q * p;
-      const consTotal = s * q * CONSIGNE;
-      const total     = beerTotal + consTotal;
-
-      beerTot.textContent = q && p ? formatEUR(beerTotal) : '—';
-      consTot.textContent = q ? formatEUR(consTotal) : '—';
-      grand.textContent   = q && p ? formatEUR(total) : '—';
-    }
-
-    ['change','input'].forEach(ev=>{
-      beerSel.addEventListener(ev, update);
-      qtyEl.addEventListener(ev, update);
-    });
-    typeEls.forEach(r=>r.addEventListener('change', update));
-
-    update();
-  })();
-</script>
 
 {% endblock %}
