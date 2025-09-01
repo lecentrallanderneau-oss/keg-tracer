@@ -1,1 +1,9 @@
-
+{% extends "base.html" %}
+{% block title %}404 — Introuvable{% endblock %}
+{% block content %}
+<div class="empty">
+<h1 class="h4">Page introuvable</h1>
+<p>La ressource demandée n’existe pas.</p>
+<a href="/" class="btn btn-outline-light btn-sm">Retour au dashboard</a>
+</div>
+{% endblock %}
