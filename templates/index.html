@@ -8,46 +8,71 @@
   <p>Bienvenue sur ton application de suivi des fûts 🍺</p>
 
   <section>
-    <h2>Dernières livraisons</h2>
+    <h2>Métriques</h2>
     <ul>
-      {% for delivery in deliveries|default([], true) %}
-        <li>
-          <strong>{{ delivery.date }}</strong> — {{ delivery.kegs }} fûts reçus
-        </li>
-      {% else %}
-        <li>Aucune livraison enregistrée</li>
-      {% endfor %}
+      <li>Solde consignes : {{ '{:,.2f}'.format((consigne_balance|default(0)|float)) }} €</li>
+      <li>Fûts en stock : {{ total_kegs|default(0) }}</li>
+      <li>Livraisons ce mois-ci : {{ deliveries_this_month|default(0) }}</li>
+      <li>Retours en attente : {{ pending_returns|default(0) }}</li>
+      <li>Dernière synchro : {{ last_sync|default('—') }}</li>
+      <li>Build : {{ build_version|default('dev') }}</li>
     </ul>
   </section>
 
   <section>
-    <h2>Stock de fûts</h2>
-    <table border="1" cellpadding="6">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Produit</th>
-          <th>Contenance</th>
-          <th>État</th>
-          <th>Localisation</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for keg in kegs|default([], true) %}
-        <tr>
-          <td>{{ keg.id }}</td>
-          <td>{{ keg.product }}</td>
-          <td>{{ keg.size_l }} L</td>
-          <td>{{ keg.status }}</td>
-          <td>{{ keg.location }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="5">Aucun fût trouvé</td>
-        </tr>
+    <h2>Dernières livraisons</h2>
+    {% set items = recent_deliveries|default([], true) %}
+    {% if items %}
+      <table border="1" cellpadding="6">
+        <thead>
+          <tr>
+            <th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th><th>Facture</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for d in items %}
+          <tr>
+            <td>{{ d.date|default('—') }}</td>
+            <td>{{ d.supplier|default('—') }}</td>
+            <td>{{ d.product|default('—') }}</td>
+            <td>{{ d.quantity|default(0) }}</td>
+            <td>{{ '{:,.2f}'.format((d.deposit|default(0)|float)) }} €</td>
+            <td>{{ d.invoice_no|default('—') }}</td>
+          </tr>
         {% endfor %}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    {% else %}
+      <p>Aucune livraison récente.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Fûts en circulation</h2>
+    {% set k = kegs_in_circulation|default([], true) %}
+    {% if k %}
+      <table border="1" cellpadding="6">
+        <thead>
+          <tr>
+            <th>ID Fût</th><th>Produit</th><th>Contenance</th><th>Statut</th><th>Localisation</th><th>Maj</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for keg in k %}
+          <tr>
+            <td>{{ keg.id|default('—') }}</td>
+            <td>{{ keg.product|default('—') }}</td>
+            <td>{{ keg.size_l|default('—') }} L</td>
+            <td>{{ keg.status|default('unknown') }}</td>
+            <td>{{ keg.location|default('—') }}</td>
+            <td>{{ keg.updated_at|default('—') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>Aucun fût en circulation.</p>
+    {% endif %}
   </section>
 </div>
 {% endblock %}
