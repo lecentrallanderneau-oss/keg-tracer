@@ -1,21 +1,38 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, case
+from sqlalchemy import func, case, text
+from sqlalchemy import inspect as sqla_inspect
 from datetime import datetime, date, timedelta
 import os
+from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
 app = Flask(__name__)
 
-# --------- Config BDD (Postgres psycopg v3 ou SQLite fallback) ----------
+# ---------- DB URL normalisation (psycopg v3 + sslmode=require si manquant) ----------
+def _ensure_sslmode(url: str) -> str:
+    try:
+        p = urlparse(url)
+        q = dict(parse_qsl(p.query))
+        if "sslmode" not in q:
+            q["sslmode"] = "require"
+            p = p._replace(query=urlencode(q))
+            return urlunparse(p)
+        return url
+    except Exception:
+        return url
+
 def _normalize_db_url(raw: str) -> str:
-    """Accepte postgres:// ou postgresql:// et force le driver psycopg v3."""
     if not raw:
         return ""
     raw = raw.strip()
+    # Render peut fournir "postgres://"
     if raw.startswith("postgres://"):
-        return "postgresql+psycopg://" + raw[len("postgres://"):]
-    if raw.startswith("postgresql://") and not raw.startswith("postgresql+psycopg://"):
-        return "postgresql+psycopg://" + raw[len("postgresql://"):]
+        raw = "postgresql+psycopg://" + raw[len("postgres://"):]
+    elif raw.startswith("postgresql://") and not raw.startswith("postgresql+psycopg://"):
+        raw = "postgresql+psycopg://" + raw[len("postgresql://"):]
+    # Forcer sslmode=require si Postgres
+    if raw.startswith("postgresql+psycopg://"):
+        raw = _ensure_sslmode(raw)
     return raw
 
 _db_url_env = os.getenv("DATABASE_URL", "")
@@ -29,9 +46,15 @@ else:
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "change-me"
 
+# Rendre la connexion plus robuste (évite erreurs réseau transitoires)
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,
+    "pool_recycle": 280,   # recycle avant idle timeout typique des proxies
+}
+
 db = SQLAlchemy(app)
 
-# --------- Modèles ----------
+# ---------- Modèles ----------
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
@@ -53,12 +76,12 @@ class Movement(db.Model):
     qty = db.Column(db.Integer, nullable=False, default=1)
     consigne_per_keg = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # anti-doublons
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # utilisé pour l’anti-doublon
 
     client = db.relationship('Client')
     beer = db.relationship('Beer')
 
-# --------- Init DB & seed ----------
+# ---------- Init / migration légère ----------
 def seed_if_empty():
     if not Client.query.first():
         db.session.add_all([
@@ -74,11 +97,45 @@ def seed_if_empty():
         ])
         db.session.commit()
 
+def ensure_columns():
+    """Ajoute la colonne created_at si elle manque (Postgres/SQLite)."""
+    insp = sqla_inspect(db.engine)
+    cols = [c["name"] for c in insp.get_columns("movement")]
+    if "created_at" not in cols:
+        if db.engine.name == "postgresql":
+            db.session.execute(text(
+                "ALTER TABLE movement "
+                "ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL"
+            ))
+            # Sécurise les anciennes lignes (au cas où)
+            db.session.execute(text(
+                "UPDATE movement SET created_at = NOW() WHERE created_at IS NULL"
+            ))
+        elif db.engine.name == "sqlite":
+            # SQLite ne supporte pas NOT NULL sans défaut lors d'un ADD COLUMN
+            db.session.execute(text(
+                "ALTER TABLE movement "
+                "ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            ))
+            db.session.execute(text(
+                "UPDATE movement SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+            ))
+        else:
+            # Autres SGBD : ajoute une colonne générique
+            db.session.execute(text(
+                "ALTER TABLE movement ADD COLUMN created_at TIMESTAMP"
+            ))
+            db.session.execute(text(
+                "UPDATE movement SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
+            ))
+        db.session.commit()
+
 with app.app_context():
     db.create_all()
+    ensure_columns()
     seed_if_empty()
 
-# --------- Routes ----------
+# ---------- Routes ----------
 @app.route('/')
 def index():
     deliveries = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype == 'delivery').scalar() or 0
@@ -274,7 +331,7 @@ def api_movement():
         consigne = float(data.get('consigne_per_keg', 0))
         notes = data.get('notes', '')
 
-        # Anti-doublons : si même mouvement créé il y a < 30 s, on renvoie OK sans recréer
+        # Anti-doublons 30s
         thirty_secs_ago = datetime.utcnow() - timedelta(seconds=30)
         last = (Movement.query
                 .filter_by(dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
