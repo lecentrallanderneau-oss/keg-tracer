@@ -1,111 +1,89 @@
+// PWA côté client : anti-doublons, file d'attente hors-ligne, sync
 (function(){
-  const KEY='keg_queue_v1';
+  const KEY = 'keg_queue_v1';
 
   function getQueue(){
-    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch(e){ return []; }
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+    catch(e){ return []; }
   }
-  function setQueue(q){ localStorage.setItem(KEY, JSON.stringify(q)); updateBadge(); }
-
-  function updateBadge(){
-    const n = getQueue().length;
-    const badge = document.querySelector('#sync-badge');
-    if(badge){ badge.textContent = n>0 ? String(n) : ''; }
+  function setQueue(q){
+    localStorage.setItem(KEY, JSON.stringify(q));
+    const b = document.querySelector('#sync-badge');
+    if(b){ b.textContent = q.length ? String(q.length) : ''; }
   }
-
   async function ping(){
-    try{
-      const res = await fetch('/api/ping');
-      return res.ok;
-    }catch(e){ return false; }
+    try { const r = await fetch('/api/ping', {cache:'no-store'}); return r.ok; }
+    catch(e){ return false; }
   }
-
   async function sendOne(item){
-    const res = await fetch('/api/movement', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+    const r = await fetch('/api/movement', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json','X-From-PWA':'1'},
       body: JSON.stringify(item)
     });
-    if(!res.ok){ throw new Error('send failed'); }
-    const js = await res.json();
-    if(!js.ok){ throw new Error('server not ok'); }
+    if(!r.ok) throw new Error('send failed');
+    const js = await r.json();
+    if(!(js && js.ok)) throw new Error('server not ok');
   }
-
-  async function syncAll(){
+  async function syncAll(showAlert){
     let q = getQueue();
-    if(q.length===0){ return true; }
-    const online = await ping();
-    if(!online){ throw new Error('offline'); }
-    for(let i=0;i<q.length;i++){
-      await sendOne(q[i]);
-    }
+    if(!q.length){ if(showAlert) alert('Rien à synchroniser.'); return true; }
+    if(!await ping()){ if(showAlert) alert('Hors-ligne. Réessaie plus tard.'); return false; }
+    for(const it of q){ await sendOne(it); }
     setQueue([]);
+    if(showAlert) alert('Synchronisation terminée ✔');
     return true;
   }
 
-  async function trySync(showAlert){
-    try{
-      await syncAll();
-      if(showAlert) alert('Synchronisation terminée ✔');
-    }catch(e){
-      if(showAlert) alert("Impossible de synchroniser (hors‑ligne ?).");
-    }finally{
-      updateBadge();
-    }
-  }
-
-  // expose
-  window.KegPWA = { getQueue, setQueue, trySync };
-
-  // Intercept movement form
   document.addEventListener('DOMContentLoaded', function(){
-    updateBadge();
-    const form = document.querySelector('form[action$="/movements/add"]') || document.querySelector('form[action="/movements/add"]') || document.querySelector('form[method="post"]');
-    if(form && location.pathname.includes('/movements/add')){
-      form.addEventListener('submit', async function(ev){
-        try{
-          const data = Object.fromEntries(new FormData(form).entries());
-          // Normalize payload
-          const item = {
-            dt: data.dt || new Date().toISOString().slice(0,10),
-            mtype: data.mtype,
-            client_id: parseInt(data.client_id,10),
-            beer_id: parseInt(data.beer_id,10),
-            qty: parseInt(data.qty||'1',10),
-            consigne_per_keg: parseFloat(data.consigne_per_keg||'0'),
-            notes: data.notes||''
-          };
-          // Try online first
-          const ok = await fetch('/api/movement', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify(item)
-          }).then(r=>r.json()).catch(()=>({ok:false, offline:true}));
+    // Mise à jour badge
+    setQueue(getQueue());
 
-          if(ok && ok.ok){
-            // normal flow online
-          }else{
-            // queue offline
-            const q = getQueue(); q.push(item); setQueue(q);
-            alert('Mouvement enregistré hors‑ligne. Il sera synchronisé plus tard.');
-          }
+    // Intercepter le submit HTML et tout passer par l’API (évite les doublons)
+    const form = document.querySelector('form[action$="/movements/add"]') || document.querySelector('form[action="/movements/add"]');
+    if(form){
+      form.addEventListener('submit', async function(ev){
+        ev.preventDefault(); // ⛔️ empêche l’envoi HTML classique
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if(submitBtn) submitBtn.disabled = true;
+
+        const data = Object.fromEntries(new FormData(form).entries());
+        const item = {
+          dt: data.dt || new Date().toISOString().slice(0,10),
+          mtype: data.mtype,
+          client_id: parseInt(data.client_id,10),
+          beer_id: parseInt(data.beer_id,10),
+          qty: parseInt(data.qty||'1',10),
+          consigne_per_keg: parseFloat(data.consigne_per_keg||'0'),
+          notes: data.notes || ''
+        };
+
+        try{
+          await sendOne(item);
+          window.location.href = '/movements';
         }catch(e){
-          // best‑effort queue
-          const q = getQueue();
-          q.push({error:'unknown', ts: Date.now()});
-          setQueue(q);
+          // Hors-ligne ou erreur serveur → file d’attente
+          const q = getQueue(); q.push(item); setQueue(q);
+          alert('Hors-ligne : mouvement mis en file. Utilise “Sync” quand tu as du réseau.');
+          window.location.href = '/movements';
+        }finally{
+          if(submitBtn) submitBtn.disabled = false;
         }
-        // let server redirect regardless, to keep UX consistent
-      }, {once:false});
+      }, false);
     }
 
-    // Sync button
+    // Bouton Sync (si présent dans le header)
     const btn = document.querySelector('#sync-btn');
     if(btn){
       btn.addEventListener('click', function(e){
         e.preventDefault();
-        trySync(true);
+        syncAll(true);
       });
     }
-  });
 
+    // Enregistrer le service worker si présent
+    if('serviceWorker' in navigator){
+      try { navigator.serviceWorker.register('/static/service-worker.js'); } catch(e){}
+    }
+  });
 })();
