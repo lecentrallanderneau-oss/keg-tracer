@@ -1,36 +1,48 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" data-theme="auto">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>{% block title %}Suivi des Fûts{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <meta name="theme-color" content="#0f766e">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta name="color-scheme" content="light dark">
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="{{ url_for('index') }}">🍺 Keg Tracer</a>
-    <nav class="nav">
-      <a href="{{ url_for('movements') }}">Mouvements</a>
-      <a href="{{ url_for('clients') }}">Clients</a>
-      <a href="{{ url_for('beers') }}">Bières</a>
-      <a href="{{ url_for('report') }}">Rapports</a>
-    </nav>
+  <header class="site-header">
+    <div class="container header-row">
+      <a class="brand" href="{{ url_for('index') }}">🍺 Keg Tracer</a>
+      <nav class="nav">
+        <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('clients') }}" class="nav-link {% if request.path.startswith('/clients') %}active{% endif %}">Clients</a>
+        <a href="{{ url_for('beers') }}" class="nav-link {% if request.path.startswith('/beers') %}active{% endif %}">Bières</a>
+        <a href="{{ url_for('movements') }}" class="nav-link {% if request.path.startswith('/movements') %}active{% endif %}">Mouvements</a>
+        <a href="{{ url_for('report') }}" class="nav-link {% if request.path.startswith('/report') %}active{% endif %}">Rapport</a>
+      </nav>
+    </div>
   </header>
 
-  <main class="container">
-    {% with msgs = get_flashed_messages() %}
-      {% if msgs %}
-        <div class="flash">
-          {% for m in msgs %}<div>{{ m }}</div>{% endfor %}
-        </div>
-      {% endif %}
-    {% endwith %}
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <div class="container">
+        {% for m in messages %}
+          <div class="alert">{{ m }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
 
+  <main class="container">
     {% block content %}{% endblock %}
   </main>
 
-  <script src="{{ url_for('static', filename='pwa.js', v=3) }}"></script>
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <div>© {{ 2025 if 0 else (now().year if false else '') }} Keg Tracer</div>
+      <div class="muted">Build: Render</div>
+    </div>
+  </footer>
+
+  <script defer src="{{ url_for('static', filename='pwa.js', v=3) }}"></script>
 </body>
 </html>
