@@ -1,25 +1,49 @@
 {% extends "base.html" %}
-{% block title %}Catalogue — Keg Tracer{% endblock %}
 {% block content %}
-<h1>Catalogue produits</h1>
-<p class="muted">Consigne standard : 30,00 € par fût · <a href="/admin/add-product">+ Ajouter un produit</a></p>
+<h2>Catalogue (produits actifs)</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <form method="post" action="{{ url_for('add_product') }}">
+    <div class="grid" style="grid-template-columns: 2fr 1fr 1fr 1fr auto;">
+      <div>
+        <label for="name">Nom</label><br>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div>
+        <label for="supplier">Fournisseur</label><br>
+        <input type="text" id="supplier" name="supplier">
+      </div>
+      <div>
+        <label for="size_l">Taille (L)</label><br>
+        <input type="number" id="size_l" name="size_l" value="30" min="1">
+      </div>
+      <div>
+        <label for="deposit_eur">Consigne (€)</label><br>
+        <input type="number" step="0.01" id="deposit_eur" name="deposit_eur" value="30">
+      </div>
+      <div style="align-self:end;">
+        <label><input type="checkbox" name="active" checked> Actif</label><br>
+        <button class="btn btn-primary" type="submit">Ajouter</button>
+      </div>
+    </div>
+  </form>
+</div>
+
 <table>
-  <thead><tr><th>Produit</th><th>Contenance</th><th>Fournisseur</th><th>Consigne / fût</th></tr></thead>
+  <thead>
+    <tr><th>Nom</th><th>Fournisseur</th><th>Taille (L)</th><th>Consigne (€)</th></tr>
+  </thead>
   <tbody>
-  {% for p in products|default([], true) %}
-    <tr>
-      <td>{{ p.name }}</td>
-      <td>{{ p.size_l }} L</td>
-      <td>{{ p.supplier }}</td>
-      <td>{{ (p.deposit_eur|default(0)|float)|round(2) }} €</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="4" class="muted">Aucun produit.</td></tr>
-  {% endfor %}
+    {% for p in products %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{{ p.supplier or "—" }}</td>
+        <td>{{ p.size_l }}</td>
+        <td>{{ "%.2f"|format(p.deposit_eur) }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4">Aucun produit actif.</td></tr>
+    {% endfor %}
   </tbody>
 </table>
-<p style="margin-top:12px">
-  Raccourcis : <a href="/admin/add-delivery">+ Livraison fournisseur</a> · <a href="/admin/add-transaction">+ Mouvement client</a>
-</p>
 {% endblock %}
-
