@@ -16,3 +16,59 @@ footer{opacity:.7;text-align:center;padding:12px}
 
 nav .sync{margin-right:16px;position:relative}
 #sync-badge{background:#ef4444;color:#fff;border-radius:12px;padding:0 6px;font-size:12px;margin-left:6px}
+/* ========== Mobile-first UI ========== */
+:root { --bg:#0f172a; --txt:#0b1220; --muted:#64748b; --surface:#ffffff; }
+
+* { -webkit-tap-highlight-color: transparent; }
+body { margin:0; font-size:16px; line-height:1.45; color:var(--txt); }
+main { padding:16px; max-width:1000px; margin:0 auto; }
+
+/* AppBar */
+.appbar { position:sticky; top:0; z-index:10; display:flex; align-items:center; justify-content:space-between;
+  background:var(--bg); color:#fff; padding:10px 12px; }
+.appbar .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px; }
+.appbar .brand .emoji { font-size:22px; }
+.appbar .brand .title { font-size:18px; }
+.nav-toggle { font-size:22px; background:none; border:none; color:#fff; display:inline-flex; padding:6px 8px; border-radius:10px; }
+.nav-panel { display:none; flex-direction:column; gap:10px; padding:12px; }
+.nav-panel a { color:#fff; text-decoration:none; font-weight:600; padding:8px 0; }
+
+/* Ouvrir/fermer le menu sur mobile */
+body.nav-open .nav-panel { display:flex; background:var(--bg); }
+
+/* Desktop : menu horizontal, burger caché */
+@media (min-width: 900px) {
+  .nav-toggle { display:none; }
+  .nav-panel { display:flex !important; flex-direction:row; gap:16px; padding:0; }
+  .nav-panel a { padding:6px 0; opacity:.95; }
+}
+
+/* Cartes/chiffres */
+.cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+@media (min-width: 700px){ .cards{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+.card { background:var(--surface); border:1px solid #e5e7eb; border-radius:12px; padding:12px; }
+.card h3{ margin:.1rem 0 .4rem; font-size:14px; color:var(--muted); }
+.card p{ margin:0; font-size:22px; font-weight:800; }
+
+/* Tableaux plus lisibles sur petit écran */
+table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border:1px solid #e5e7eb; border-radius:12px; overflow:hidden; }
+th, td { padding:12px 10px; font-size:15px; border-bottom:1px solid #eef2f7; }
+th { background:#f8fafc; color:#0b1220; font-weight:700; }
+tr:last-child td { border-bottom:none; }
+
+/* Scroll horizontal doux si le tableau est large */
+.table-responsive { display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:12px; }
+
+/* Barre d’onglets en bas (mobile) */
+.tabbar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #e5e7eb;
+  display:flex; justify-content:space-around; padding:6px 4px; z-index:20; }
+.tabbar a { text-decoration:none; color:#111827; font-weight:700; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 10px; border-radius:10px; }
+.tabbar a span { font-size:11px; color:#374151; }
+.tabbar .fab { position:relative; top:-18px; background:#111827; color:#fff; width:54px; height:54px; border-radius:28px; font-size:28px; align-items:center; justify-content:center; display:flex; box-shadow:0 8px 20px rgba(0,0,0,.25); }
+
+/* Laisser de la place en bas pour la tabbar */
+main { padding-bottom:80px; }
+
+/* Bouton Sync dans le menu */
+.sync { margin-left:auto; background:#ef4444; color:#fff !important; padding:6px 10px; border-radius:10px; }
+#sync-badge { background:#fff; color:#ef4444; padding:0 6px; border-radius:10px; font-size:12px; margin-left:6px; }
