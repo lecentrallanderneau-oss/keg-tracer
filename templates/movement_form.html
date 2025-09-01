@@ -1,16 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Ajouter un mouvement · Suivi des Fûts{% endblock %}
+{% block title %}Nouveau mouvement · Suivi des Fûts{% endblock %}
 {% block content %}
 
 <h2>Ajouter un mouvement</h2>
 
-<form method="post" action="{{ url_for('movement_add') }}" style="display:grid; gap:12px; max-width:720px;">
-  <div style="display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
+<form id="mv-form" class="card" onsubmit="return submitMovement(event)">
+  <div class="grid-2">
     <div>
       <label for="dt">Date</label>
-      <input type="date" id="dt" name="dt" value="{{ date.today().isoformat() }}" required>
+      <input type="date" id="dt" name="dt" value="{{ today_iso }}" required>
     </div>
-
     <div>
       <label for="mtype">Type</label>
       <select id="mtype" name="mtype" required>
@@ -44,24 +43,66 @@
     </div>
 
     <div>
-      <label for="consigne_per_keg">Consigne / fût (€)</label>
+      <label for="consigne_per_keg">Consigne par fût (€)</label>
       <input type="number" id="consigne_per_keg" name="consigne_per_keg" min="0" step="0.01" value="0">
+    </div>
+
+    <div class="full">
+      <label for="notes">Notes</label>
+      <textarea id="notes" name="notes" rows="2" placeholder="Optionnel"></textarea>
     </div>
   </div>
 
-  <div>
-    <label for="notes">Notes</label>
-    <textarea id="notes" name="notes" rows="3" placeholder="Infos complémentaires (optionnel)"></textarea>
+  <div class="actions">
+    <button type="submit">Enregistrer</button>
+    <a class="btn-secondary" href="{{ url_for('movements') }}">Annuler</a>
   </div>
 
-  <div style="display:flex; gap:10px;">
-    <button type="submit">Enregistrer</button>
-    <a href="{{ url_for('movements') }}" style="align-self:center;">Annuler</a>
-  </div>
+  <p id="mv-msg" class="muted" style="display:none;"></p>
 </form>
 
-<p style="margin-top:8px; color:#64748b;">
-  Astuce : si tu es hors-ligne, l’enregistrement est mis en file et tu pourras le synchroniser plus tard avec le bouton <strong>Sync</strong>.
-</p>
+<script>
+async function submitMovement(ev) {
+  ev.preventDefault();
+  const form = document.getElementById('mv-form');
+  const msg  = document.getElementById('mv-msg');
+  msg.style.display = 'none';
+
+  const payload = {
+    dt:              document.getElementById('dt').value,
+    mtype:           document.getElementById('mtype').value,
+    client_id:       document.getElementById('client_id').value,
+    beer_id:         document.getElementById('beer_id').value,
+    qty:             document.getElementById('qty').value || 1,
+    consigne_per_keg:document.getElementById('consigne_per_keg').value || 0,
+    notes:           document.getElementById('notes').value || ''
+  };
+
+  try {
+    const r = await fetch('{{ url_for("api_movement") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await r.json();
+
+    if (!r.ok || !data.ok) {
+      throw new Error((data && data.error) || 'Erreur inconnue');
+    }
+
+    if (data.dedup) {
+      msg.textContent = 'Mouvement déjà saisi à l’identique il y a quelques secondes. Pas de doublon.';
+      msg.style.display = 'block';
+    }
+
+    window.location.href = '{{ url_for("movements") }}';
+    return false;
+  } catch (e) {
+    msg.textContent = 'Erreur : ' + (e.message || e);
+    msg.style.display = 'block';
+    return false;
+  }
+}
+</script>
 
 {% endblock %}
