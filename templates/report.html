@@ -1,23 +1,37 @@
 {% extends "base.html" %}
+{% block title %}Rapport{% endblock %}
 {% block content %}
-<h1 class="title">Rapport</h1>
 
-<div class="cards">
-  <div class="card">
-    <div class="card-title">Total livrés</div>
-    <div class="card-value">{{ deliveries }}</div>
-  </div>
-  <div class="card">
-    <div class="card-title">Total retours</div>
-    <div class="card-value">{{ returns }}</div>
-  </div>
-  <div class="card">
-    <div class="card-title">En circulation</div>
-    <div class="card-value">{{ outstanding }}</div>
-  </div>
-  <div class="card">
-    <div class="card-title">Consigne (solde)</div>
-    <div class="card-value">{{ "%.2f"|format(consigne_balance) }} €</div>
-  </div>
-</div>
+<h2>Rapport</h2>
+
+<ul>
+  <li>Livrés : <strong>{{ delivered }}</strong></li>
+  <li>Retours pleins : <strong>{{ returned_full }}</strong></li>
+  <li>Retours vides : <strong>{{ returned_empty }}</strong></li>
+  <li>Consignes facturées : <strong>{{ consigne_charged|round(2) }} €</strong></li>
+  <li>Consignes remboursées : <strong>{{ consigne_refunded|round(2) }} €</strong></li>
+  <li>Ventes TTC : <strong>{{ total_sales|round(2) }} €</strong></li>
+</ul>
+
+<table>
+  <thead>
+    <tr>
+      <th>Date</th><th>Type</th><th>Client</th><th>Bière</th><th>Qté</th><th>Prix TTC</th><th>Consigne</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in moves %}
+    <tr>
+      <td>{{ m.dt }}</td>
+      <td>{{ "Livraison" if m.mtype=="delivery" else "Retour plein" if m.mtype=="return_full" else "Retour vide" }}</td>
+      <td>{{ m.client.name }}</td>
+      <td>{{ m.beer.name }}</td>
+      <td>{{ m.qty }}</td>
+      <td>{% if m.mtype=="delivery" %}{{ (m.qty * m.beer.price_ttc)|round(2) }} €{% endif %}</td>
+      <td>{% if m.mtype=="delivery" %}{{ (m.qty * m.consigne_per_keg)|round(2) }} €{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
 {% endblock %}
