@@ -1,60 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, case, text
-from sqlalchemy import inspect as sqla_inspect
+from sqlalchemy import func, case, and_
 from datetime import datetime, date, timedelta
 import os
-from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
 
 app = Flask(__name__)
 
-# ---------- DB URL normalisation (psycopg v3 + sslmode=require si manquant) ----------
-def _ensure_sslmode(url: str) -> str:
-    try:
-        p = urlparse(url)
-        q = dict(parse_qsl(p.query))
-        if "sslmode" not in q:
-            q["sslmode"] = "require"
-            p = p._replace(query=urlencode(q))
-            return urlunparse(p)
-        return url
-    except Exception:
-        return url
-
-def _normalize_db_url(raw: str) -> str:
-    if not raw:
-        return ""
-    raw = raw.strip()
-    # Render peut fournir "postgres://"
-    if raw.startswith("postgres://"):
-        raw = "postgresql+psycopg://" + raw[len("postgres://"):]
-    elif raw.startswith("postgresql://") and not raw.startswith("postgresql+psycopg://"):
-        raw = "postgresql+psycopg://" + raw[len("postgresql://"):]
-    # Forcer sslmode=require si Postgres
-    if raw.startswith("postgresql+psycopg://"):
-        raw = _ensure_sslmode(raw)
-    return raw
-
-_db_url_env = os.getenv("DATABASE_URL", "")
-db_url = _normalize_db_url(_db_url_env)
-
-if db_url:
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kegs.db"
-
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = "change-me"
-
-# Rendre la connexion plus robuste (évite erreurs réseau transitoires)
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,
-    "pool_recycle": 280,   # recycle avant idle timeout typique des proxies
-}
-
+# DB config (Render/Heroku fix pour l'ancien schéma postgres://)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///kegs.db').replace('postgres://','postgresql://')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-me')
 db = SQLAlchemy(app)
 
-# ---------- Modèles ----------
+# --- Models ---
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
@@ -76,66 +34,33 @@ class Movement(db.Model):
     qty = db.Column(db.Integer, nullable=False, default=1)
     consigne_per_keg = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # utilisé pour l’anti-doublon
+    # horodatage pour déduplication & tri récents
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False, index=True)
 
     client = db.relationship('Client')
     beer = db.relationship('Beer')
 
-# ---------- Init / migration légère ----------
+# --- Init DB + seeds ---
 def seed_if_empty():
     if not Client.query.first():
         db.session.add_all([
             Client(name="Client A"),
             Client(name="Client B"),
-            Client(name="Client C")
+            Client(name="Client C"),
         ])
         db.session.commit()
     if not Beer.query.first():
         db.session.add_all([
             Beer(name="Blonde 30L", size_l=30),
-            Beer(name="IPA 20L", size_l=20)
+            Beer(name="IPA 20L", size_l=20),
         ])
-        db.session.commit()
-
-def ensure_columns():
-    """Ajoute la colonne created_at si elle manque (Postgres/SQLite)."""
-    insp = sqla_inspect(db.engine)
-    cols = [c["name"] for c in insp.get_columns("movement")]
-    if "created_at" not in cols:
-        if db.engine.name == "postgresql":
-            db.session.execute(text(
-                "ALTER TABLE movement "
-                "ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL"
-            ))
-            # Sécurise les anciennes lignes (au cas où)
-            db.session.execute(text(
-                "UPDATE movement SET created_at = NOW() WHERE created_at IS NULL"
-            ))
-        elif db.engine.name == "sqlite":
-            # SQLite ne supporte pas NOT NULL sans défaut lors d'un ADD COLUMN
-            db.session.execute(text(
-                "ALTER TABLE movement "
-                "ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
-            ))
-            db.session.execute(text(
-                "UPDATE movement SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
-            ))
-        else:
-            # Autres SGBD : ajoute une colonne générique
-            db.session.execute(text(
-                "ALTER TABLE movement ADD COLUMN created_at TIMESTAMP"
-            ))
-            db.session.execute(text(
-                "UPDATE movement SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL"
-            ))
         db.session.commit()
 
 with app.app_context():
     db.create_all()
-    ensure_columns()
     seed_if_empty()
 
-# ---------- Routes ----------
+# --- Routes ---
 @app.route('/')
 def index():
     deliveries = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype == 'delivery').scalar() or 0
@@ -144,9 +69,14 @@ def index():
 
     outstanding_kegs = deliveries - ret_full
     outstanding_empties = deliveries - ret_empty
+
     outstanding_consigne = (db.session.query(
-        (func.coalesce(func.sum(case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)), 0) -
-         func.coalesce(func.sum(case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)), 0))
+        (func.coalesce(func.sum(
+            case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)
+        ), 0) -
+         func.coalesce(func.sum(
+            case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)
+        ), 0))
     ).scalar() or 0)
 
     clients = Client.query.order_by(Client.name).all()
@@ -155,8 +85,13 @@ def index():
         d  = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'delivery').scalar() or 0
         rf = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'return_full').scalar() or 0
         re = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'return_empty').scalar() or 0
-        cons_charge = db.session.query(func.coalesce(func.sum(case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)), 0)).filter(Movement.client_id == c.id).scalar() or 0
-        cons_refund = db.session.query(func.coalesce(func.sum(case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)), 0)).filter(Movement.client_id == c.id).scalar() or 0
+        cons_charge = db.session.query(func.coalesce(func.sum(
+            case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)
+        ), 0)).filter(Movement.client_id == c.id).scalar() or 0
+        cons_refund = db.session.query(func.coalesce(func.sum(
+            case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)
+        ), 0)).filter(Movement.client_id == c.id).scalar() or 0
+
         per_client.append({
             'client': c,
             'delivered': int(d),
@@ -164,7 +99,7 @@ def index():
             'returned_empty': int(re),
             'kegs_out': int(d - rf),
             'empties_due': int(d - re),
-            'consigne_out': float(cons_charge - cons_refund)
+            'consigne_out': float(cons_charge - cons_refund),
         })
 
     return render_template('index.html',
@@ -201,7 +136,7 @@ def del_client(cid):
     db.session.commit()
     return redirect(url_for('clients'))
 
-# ---- Bières ----
+# ---- Beers ----
 @app.route('/beers')
 def beers():
     beers = Beer.query.order_by(Beer.name).all()
@@ -223,9 +158,10 @@ def del_beer(bid):
     db.session.commit()
     return redirect(url_for('beers'))
 
-# ---- Mouvements ----
+# ---- Movements ----
 @app.route('/movements')
 def movements():
+    # Tri par date (métier) puis par id décroissant
     q = Movement.query.order_by(Movement.dt.desc(), Movement.id.desc()).limit(200).all()
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
@@ -233,18 +169,40 @@ def movements():
 
 @app.route('/movements/add', methods=['GET', 'POST'])
 def movement_add():
-    """Affiche le formulaire. La création se fait via /api/movement (JS), on ignore le POST HTML."""
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
     if request.method == 'POST':
+        # support envoi "classique" (non-JS)
+        dt_val = request.form.get('dt') or date.today().isoformat()
+        mv = Movement(
+            dt=datetime.fromisoformat(dt_val).date(),
+            mtype=request.form.get('mtype'),
+            client_id=int(request.form.get('client_id')),
+            beer_id=int(request.form.get('beer_id')),
+            qty=int(request.form.get('qty') or 1),
+            consigne_per_keg=float(request.form.get('consigne_per_keg') or 0),
+            notes=request.form.get('notes', '')
+        )
+        # dédup minimale (10s)
+        cutoff = datetime.utcnow() - timedelta(seconds=10)
+        exists = Movement.query.filter(
+            Movement.created_at >= cutoff,
+            Movement.dt == mv.dt,
+            Movement.mtype == mv.mtype,
+            Movement.client_id == mv.client_id,
+            Movement.beer_id == mv.beer_id,
+            Movement.qty == mv.qty,
+            Movement.consigne_per_keg == mv.consigne_per_keg,
+            (Movement.notes == mv.notes) | (and_(Movement.notes.is_(None), mv.notes == ''))
+        ).first()
+        if not exists:
+            db.session.add(mv)
+            db.session.commit()
+        flash('Mouvement enregistré.')
         return redirect(url_for('movements'))
-    return render_template('movement_form.html', clients=clients, beers=beers)
 
-@app.route('/movements/<int:mid>/delete', methods=['POST'])
-def movement_delete(mid):
-    Movement.query.filter_by(id=mid).delete()
-    db.session.commit()
-    return redirect(url_for('movements'))
+    # GET → fournir today_iso au template (évite l’erreur Jinja "date is undefined")
+    return render_template('movement_form.html', clients=clients, beers=beers, today_iso=date.today().isoformat())
 
 # ---- Reporting ----
 @app.route('/report')
@@ -289,14 +247,14 @@ def report():
 
     breakdown = {}
     for m in moves:
-        key = m.beer.name
-        breakdown.setdefault(key, {'delivered': 0, 'returned_full': 0, 'returned_empty': 0})
+        key = m.beer.name if m.beer else '—'
+        bd = breakdown.setdefault(key, {'delivered': 0, 'returned_full': 0, 'returned_empty': 0})
         if m.mtype == 'delivery':
-            breakdown[key]['delivered'] += m.qty
+            bd['delivered'] += m.qty
         elif m.mtype == 'return_full':
-            breakdown[key]['returned_full'] += m.qty
+            bd['returned_full'] += m.qty
         elif m.mtype == 'return_empty':
-            breakdown[key]['returned_empty'] += m.qty
+            bd['returned_empty'] += m.qty
 
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
@@ -314,7 +272,7 @@ def report():
                            selected_client_id=client_id, selected_beer_id=beer_id,
                            months_back=months_back)
 
-# --- API & Health (PWA/offline) ---
+# --- API & Health ---
 @app.route('/api/ping')
 def api_ping():
     return jsonify({'ok': True})
@@ -331,18 +289,25 @@ def api_movement():
         consigne = float(data.get('consigne_per_keg', 0))
         notes = data.get('notes', '')
 
-        # Anti-doublons 30s
-        thirty_secs_ago = datetime.utcnow() - timedelta(seconds=30)
-        last = (Movement.query
-                .filter_by(dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
-                           qty=qty, consigne_per_keg=consigne, notes=notes)
-                .order_by(Movement.id.desc())
-                .first())
-        if last and last.created_at and last.created_at >= thirty_secs_ago:
-            return jsonify({'ok': True, 'id': last.id, 'dedup': True})
+        # dédup: même payload dans les 10 dernières secondes
+        cutoff = datetime.utcnow() - timedelta(seconds=10)
+        existing = Movement.query.filter(
+            Movement.created_at >= cutoff,
+            Movement.dt == dt_val,
+            Movement.mtype == mtype,
+            Movement.client_id == client_id,
+            Movement.beer_id == beer_id,
+            Movement.qty == qty,
+            Movement.consigne_per_keg == consigne,
+            (Movement.notes == notes) | (and_(Movement.notes.is_(None), notes == ''))
+        ).first()
+        if existing:
+            return jsonify({'ok': True, 'id': existing.id, 'dedup': True})
 
-        mv = Movement(dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
-                      qty=qty, consigne_per_keg=consigne, notes=notes)
+        mv = Movement(
+            dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
+            qty=qty, consigne_per_keg=consigne, notes=notes
+        )
         db.session.add(mv)
         db.session.commit()
         return jsonify({'ok': True, 'id': mv.id})
