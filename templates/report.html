@@ -1,131 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Rapport · Suivi des Fûts{% endblock %}
 {% block content %}
-<h1 class="page-title">Rapport</h1>
+<h1 class="title">Rapport</h1>
 
-<form class="card form-grid" method="get">
-  <div class="grid-3">
-    <label>Client
-      <select name="client_id">
-        <option value="">Tous</option>
-        {% for c in clients %}
-          <option value="{{ c.id }}" {% if selected_client_id==c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Bière
-      <select name="beer_id">
-        <option value="">Toutes</option>
-        {% for b in beers %}
-          <option value="{{ b.id }}" {% if selected_beer_id==b.id %}selected{% endif %}>{{ b.name }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label>Période rapide
-      <select name="months_back">
-        <option value="">—</option>
-        <option value="0" {% if months_back==0 %}selected{% endif %}>Mois en cours</option>
-        <option value="1" {% if months_back==1 %}selected{% endif %}>Dernier mois</option>
-        <option value="3" {% if months_back==3 %}selected{% endif %}>3 derniers mois</option>
-        <option value="6" {% if months_back==6 %}selected{% endif %}>6 derniers mois</option>
-        <option value="12" {% if months_back==12 %}selected{% endif %}>12 derniers mois</option>
-      </select>
-    </label>
+<div class="cards">
+  <div class="card">
+    <div class="card-title">Total livrés</div>
+    <div class="card-value">{{ deliveries }}</div>
   </div>
-
-  <div class="grid-2">
-    <label>Du
-      <input type="date" name="from" value="{{ (start|string)[:10] }}">
-    </label>
-    <label>Au
-      <input type="date" name="to" value="{{ (end|string)[:10] }}">
-    </label>
+  <div class="card">
+    <div class="card-title">Total retours</div>
+    <div class="card-value">{{ returns }}</div>
   </div>
-
-  <div class="form-actions end">
-    <a class="btn" href="{{ url_for('report') }}">Réinitialiser</a>
-    <button class="btn primary">Filtrer</button>
+  <div class="card">
+    <div class="card-title">En circulation</div>
+    <div class="card-value">{{ outstanding }}</div>
   </div>
-</form>
-
-<section class="cards">
-  <div class="card stat">
-    <div class="stat-value">{{ delivered }}</div>
-    <div class="stat-label">Livrés</div>
-  </div>
-  <div class="card stat">
-    <div class="stat-value">{{ returned_full }}</div>
-    <div class="stat-label">Retours pleins</div>
-  </div>
-  <div class="card stat">
-    <div class="stat-value">{{ returned_empty }}</div>
-    <div class="stat-label">Retours vides</div>
-  </div>
-  <div class="card stat accent">
-    <div class="stat-value">{{ "%.2f"|format(consigne_charged) }} €</div>
-    <div class="stat-label">Consignes facturées</div>
-  </div>
-  <div class="card stat accent">
-    <div class="stat-value">{{ "%.2f"|format(consigne_refunded) }} €</div>
-    <div class="stat-label">Consignes remboursées</div>
-  </div>
-</section>
-
-<div class="card">
-  <div class="card-header"><h2>Détail par bière</h2></div>
-  <div class="table-responsive">
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Bière</th>
-        <th class="num">Livrés</th>
-        <th class="num">Ret. pleins</th>
-        <th class="num">Ret. vides</th>
-      </tr>
-      </thead>
-      <tbody>
-      {% for beer_name, values in breakdown.items() %}
-        <tr>
-          <td>{{ beer_name }}</td>
-          <td class="num">{{ values.delivered }}</td>
-          <td class="num">{{ values.returned_full }}</td>
-          <td class="num">{{ values.returned_empty }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<div class="card">
-  <div class="card-header"><h2>Mouvements</h2></div>
-  <div class="table-responsive">
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Date</th>
-        <th>Type</th>
-        <th>Client</th>
-        <th>Bière</th>
-        <th class="num">Qté</th>
-        <th class="num">Cons./fût</th>
-        <th>Notes</th>
-      </tr>
-      </thead>
-      <tbody>
-      {% for m in moves %}
-        <tr>
-          <td>{{ m.dt.strftime('%d/%m/%Y') }}</td>
-          <td>{{ 'Livraison' if m.mtype=='delivery' else ('Retour plein' if m.mtype=='return_full' else 'Retour vide') }}</td>
-          <td>{{ m.client.name }}</td>
-          <td>{{ m.beer.name }}</td>
-          <td class="num">{{ m.qty }}</td>
-          <td class="num">{{ "%.2f"|format(m.consigne_per_keg) }} €</td>
-          <td class="truncate">{{ m.notes or "—" }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+  <div class="card">
+    <div class="card-title">Consigne (solde)</div>
+    <div class="card-value">{{ "%.2f"|format(consigne_balance) }} €</div>
   </div>
 </div>
 {% endblock %}
