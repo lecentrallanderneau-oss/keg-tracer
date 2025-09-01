@@ -43,7 +43,7 @@
     const form = document.querySelector('form[action$="/movements/add"]') || document.querySelector('form[action="/movements/add"]');
     if(form){
       form.addEventListener('submit', async function(ev){
-        ev.preventDefault(); // ⛔️ empêche l’envoi HTML classique
+        ev.preventDefault(); // ⛔️ empêche l’envoi HTML
         const submitBtn = form.querySelector('button[type="submit"]');
         if(submitBtn) submitBtn.disabled = true;
 
@@ -62,7 +62,6 @@
           await sendOne(item);
           window.location.href = '/movements';
         }catch(e){
-          // Hors-ligne ou erreur serveur → file d’attente
           const q = getQueue(); q.push(item); setQueue(q);
           alert('Hors-ligne : mouvement mis en file. Utilise “Sync” quand tu as du réseau.');
           window.location.href = '/movements';
@@ -72,7 +71,7 @@
       }, false);
     }
 
-    // Bouton Sync (si présent dans le header)
+    // Bouton Sync
     const btn = document.querySelector('#sync-btn');
     if(btn){
       btn.addEventListener('click', function(e){
@@ -81,9 +80,9 @@
       });
     }
 
-    // Enregistrer le service worker si présent
+    // SW
     if('serviceWorker' in navigator){
-      try { navigator.serviceWorker.register('/static/service-worker.js'); } catch(e){}
+      try { navigator.serviceWorker.register('/static/service-worker.js?v=3'); } catch(e){}
     }
   });
 })();
