@@ -1,65 +1,64 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Suivi Fûts</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
-    <script>
-      if('serviceWorker' in navigator){
-        window.addEventListener('load', ()=>{
-          navigator.serviceWorker.register('{{ url_for('static', filename='service-worker.js') }}');
-        });
-      }
-    </script>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>{% block title %}Suivi des Fûts{% endblock %}</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    /* petite aide pour la zone de messages */
+    .flash { background:#ecfccb; color:#3f6212; border:1px solid #a3e635; padding:10px 12px; border-radius:10px; margin:12px 0; }
+  </style>
 </head>
-  <body>
-    <header class="appbar">
-  <div class="brand">
-    <span class="emoji">🍺</span>
-    <span class="title">Suivi des Fûts</span>
-  </div>
+<body>
 
-  <button class="nav-toggle" aria-label="Menu" onclick="document.body.classList.toggle('nav-open')">
-    ☰
-  </button>
+  <!-- AppBar / Menu -->
+  <header class="appbar">
+    <div class="brand">
+      <span class="emoji">🍺</span>
+      <span class="title">Suivi des Fûts</span>
+    </div>
 
-  <nav class="nav-panel">
-    <a href="{{ url_for('index') }}">Tableau de bord</a>
-    <a href="{{ url_for('clients') }}">Clients</a>
-    <a href="{{ url_for('beers') }}">Bières</a>
-    <a href="{{ url_for('movements') }}">Mouvements</a>
-    <a href="{{ url_for('movement_add') }}">+ Ajouter</a>
-    <a href="{{ url_for('report') }}">Rapports</a>
-    <a id="sync-btn" href="#" class="sync">Sync <span id="sync-badge"></span></a>
+    <button class="nav-toggle" aria-label="Menu" onclick="document.body.classList.toggle('nav-open')">☰</button>
+
+    <nav class="nav-panel">
+      <a href="{{ url_for('index') }}">Tableau de bord</a>
+      <a href="{{ url_for('clients') }}">Clients</a>
+      <a href="{{ url_for('beers') }}">Bières</a>
+      <a href="{{ url_for('movements') }}">Mouvements</a>
+      <a href="{{ url_for('movement_add') }}">+ Ajouter</a>
+      <a href="{{ url_for('report') }}">Rapports</a>
+      <a id="sync-btn" href="#" class="sync">Sync <span id="sync-badge"></span></a>
+    </nav>
+  </header>
+
+  <main>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Tabbar mobile -->
+  <nav class="tabbar">
+    <a href="{{ url_for('index') }}">🏠<span>Accueil</span></a>
+    <a href="{{ url_for('clients') }}">👤<span>Clients</span></a>
+    <a href="{{ url_for('beers') }}">🍺<span>Bières</span></a>
+    <a href="{{ url_for('movements') }}">📦<span>Mouvts</span></a>
+    <a href="{{ url_for('movement_add') }}" class="fab">＋</a>
   </nav>
-</header>
-    <main>
-      {% with messages = get_flashed_messages() %}
-        {% if messages %}
-          <div class="flash">
-            {% for message in messages %}<p>{{ message }}</p>{% endfor %}
-          </div>
-        {% endif %}
-      {% endwith %}
-      {% block content %}{% endblock %}
-    </main>
-    <footer>
-      <p>Local-only • SQLite • Flask</p>
-    </footer>
-    <script src="{{ url_for('static', filename='pwa.js') }}"></script>
-    <!-- Barre d’onglets mobile -->
-<nav class="tabbar">
-  <a href="{{ url_for('index') }}">🏠<span>Accueil</span></a>
-  <a href="{{ url_for('clients') }}">👤<span>Clients</span></a>
-  <a href="{{ url_for('beers') }}">🍺<span>Bières</span></a>
-  <a href="{{ url_for('movements') }}">📦<span>Mouvts</span></a>
-  <a href="{{ url_for('movement_add') }}" class="fab">＋</a>
-</nav>
 
+  <!-- JS (cache-busting v=3 pour forcer la mise à jour) -->
+  <script src="{{ url_for('static', filename='pwa.js') }}?v=3"></script>
 </body>
 </html>
