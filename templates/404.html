@@ -1,6 +1,6 @@
 {% extends "base.html" %}
-{% block title %}404 — Keg Tracer{% endblock %}
+{% block title %}Erreur — Keg Tracer{% endblock %}
 {% block content %}
-<h1>404</h1>
-<p class="muted">Page introuvable.</p>
+<h1>Erreur interne</h1>
+<p class="muted">Un souci est survenu. ID erreur : {{ error_id|default('n/a') }}</p>
 {% endblock %}
