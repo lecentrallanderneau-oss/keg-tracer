@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}Nouveau mouvement{% endblock %}
+{% block content %}
+
+<h2>Nouveau mouvement</h2>
+
+<form method="post" action="{{ url_for('movement_add') }}" class="card">
+  <div class="field">
+    <label for="dt">Date</label>
+    <input id="dt" name="dt" type="date" value="{{ today }}" required>
+  </div>
+
+  <div class="field">
+    <label>Type</label>
+    <div class="segmented">
+      <label>
+        <input type="radio" name="mtype" value="Livraison" checked>
+        <span>Livraison</span>
+      </label>
+      <label>
+        <input type="radio" name="mtype" value="Retour">
+        <span>Retour</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="client_id">Client</label>
+    <select id="client_id" name="client_id" required>
+      {% for c in clients %}
+      <option value="{{ c.id }}">{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="beer_id">Bière</label>
+    <select id="beer_id" name="beer_id" required>
+      <option value="" disabled selected>Choisir une bière…</option>
+      {% for b in beers %}
+      <option
+        value="{{ b.id }}"
+        data-price="{{ "%.2f"|format(b.price_ttc) }}"
+        data-name="{{ b.name }}"
+        data-vol="{{ b.volume }}"
+      >
+        {{ b.name }} — {{ b.volume }} — {{ "%.2f"|format(b.price_ttc) }} €
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="field">
+    <label for="qty">Quantité (fûts)</label>
+    <input id="qty" name="qty" type="number" min="1" step="1" value="1" required>
+  </div>
+
+  <div class="field">
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes" rows="2" placeholder="Optionnel…"></textarea>
+  </div>
+
+  <div class="card compact" id="resume">
+    <div class="row">
+      <span>Bière (TTC / fût)</span>
+      <strong id="beer_unit">—</strong>
+    </div>
+    <div class="row">
+      <span>Consigne / fût</span>
+      <strong id="consigne_unit">30,00 €</strong>
+    </div>
+    <hr>
+    <div class="row">
+      <span>Sous-total bières</span>
+      <strong id="beer_total">—</strong>
+    </div>
+    <div class="row">
+      <span>Total consignes</span>
+      <strong id="consigne_total">—</strong>
+    </div>
+    <div class="row big">
+      <span>Total mouvement</span>
+      <strong id="grand_total">—</strong>
+    </div>
+  </div>
+
+  <button class="btn primary" type="submit">Enregistrer</button>
+</form>
+
+<a class="fab" href="{{ url_for('movements') }}" aria-label="Voir les mouvements">↩</a>
+
+<style>
+  .card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+  .card.compact{padding:12px}
+  form .field{display:flex;flex-direction:column;gap:6px;margin:12px 0}
+  label{font-size:.95rem;color:#333}
+  input, select, textarea{font-size:16px;padding:12px 14px;border:1px solid #e3e3e7;border-radius:12px}
+  .segmented{display:flex;background:#f2f3f7;border-radius:12px;overflow:hidden}
+  .segmented label{flex:1}
+  .segmented input{display:none}
+  .segmented span{display:block;text-align:center;padding:10px 0}
+  .segmented input:checked + span{background:#111;color:#fff}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:6px 2px}
+  .row.big{font-size:1.1rem}
+  hr{border:none;border-top:1px solid #eee;margin:8px 0}
+  .btn.primary{width:100%;padding:14px 16px;border:none;border-radius:14px;background:#111;color:#fff;font-size:16px}
+  .fab{position:fixed;right:16px;bottom:16px;background:#111;color:#fff;text-decoration:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:50%;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+  @media (min-width:700px){ form{max-width:520px;margin:auto} }
+</style>
+
+<script>
+  (function(){
+    const CONSIGNE = 30.0;
+    const beerSel = document.getElementById('beer_id');
+    const qtyEl   = document.getElementById('qty');
+    const typeEls = document.querySelectorAll('input[name="mtype"]');
+
+    const beerUnit = document.getElementById('beer_unit');
+    const consUnit = document.getElementById('consigne_unit');
+    const beerTot  = document.getElementById('beer_total');
+    const consTot  = document.getElementById('consigne_total');
+    const grand    = document.getElementById('grand_total');
+
+    consUnit.textContent = CONSIGNE.toFixed(2).replace('.', ',') + ' €';
+
+    function getSign(){
+      const t = [...typeEls].find(r=>r.checked)?.value || 'Livraison';
+      return t === 'Livraison' ? 1 : -1;
+    }
+
+    function price(){
+      const opt = beerSel.options[beerSel.selectedIndex];
+      return opt ? parseFloat(opt.dataset.price || '0') : 0;
+    }
+
+    function formatEUR(x){
+      return x.toFixed(2).replace('.', ',') + ' €';
+    }
+
+    function update(){
+      const q = parseInt(qtyEl.value || '0', 10);
+      const p = price();
+      const s = getSign();
+
+      beerUnit.textContent = p ? formatEUR(p) : '—';
+
+      const beerTotal = s * q * p;
+      const consTotal = s * q * CONSIGNE;
+      const total     = beerTotal + consTotal;
+
+      beerTot.textContent = q && p ? formatEUR(beerTotal) : '—';
+      consTot.textContent = q ? formatEUR(consTotal) : '—';
+      grand.textContent   = q && p ? formatEUR(total) : '—';
+    }
+
+    ['change','input'].forEach(ev=>{
+      beerSel.addEventListener(ev, update);
+      qtyEl.addEventListener(ev, update);
+    });
+    typeEls.forEach(r=>r.addEventListener('change', update));
+
+    update();
+  })();
+</script>
+
+{% endblock %}
