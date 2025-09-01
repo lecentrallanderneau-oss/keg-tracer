@@ -1,1 +1,37 @@
-
+{% extends "base.html" %}
+{% block title %}Livraisons — Keg Tracer{% endblock %}
+{% block content %}
+<div class="card p-3">
+<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="card-title h5 mb-0">Historique des livraisons</div>
+<form class="d-flex" method="get">
+<input class="form-control form-control-sm me-2" name="q" value="{{ request.args.get('q', '') }}" placeholder="Rechercher…" />
+<button class="btn btn-sm btn-outline-light" type="submit">OK</button>
+</form>
+</div>
+{% set rows = deliveries|default([]) %}
+{% if rows %}
+<div class="table-responsive">
+<table class="table table-sm align-middle">
+<thead>
+<tr><th>Date</th><th>Facture</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th></tr>
+</thead>
+<tbody>
+{% for d in rows %}
+<tr>
+<td>{{ d.date|default('—') }}</td>
+<td>{{ d.invoice_no|default('—') }}</td>
+<td>{{ d.supplier|default('—') }}</td>
+<td>{{ d.product|default('—') }}</td>
+<td>{{ d.quantity|default(0) }}</td>
+<td>{{ '{:,.2f}'.format((d.deposit|default(0)|float)) }} €</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">Aucune livraison trouvée.</div>
+{% endif %}
+</div>
+{% endblock %}
