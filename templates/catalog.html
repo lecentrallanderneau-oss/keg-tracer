@@ -1,1 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Catalogue — Keg Tracer{% endblock %}
+{% block content %}
+<h1>Catalogue produits</h1>
+<p class="muted">Consigne standard : 30,00 € par fût · <a href="/admin/add-product">+ Ajouter un produit</a></p>
+<table>
+  <thead><tr><th>Produit</th><th>Contenance</th><th>Fournisseur</th><th>Consigne / fût</th></tr></thead>
+  <tbody>
+  {% for p in products|default([], true) %}
+    <tr>
+      <td>{{ p.name }}</td>
+      <td>{{ p.size_l }} L</td>
+      <td>{{ p.supplier }}</td>
+      <td>{{ (p.deposit_eur|default(0)|float)|round(2) }} €</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">Aucun produit.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+<p style="margin-top:12px">
+  Raccourcis : <a href="/admin/add-delivery">+ Livraison fournisseur</a> · <a href="/admin/add-transaction">+ Mouvement client</a>
+</p>
+{% endblock %}
 
