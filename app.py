@@ -49,4 +49,142 @@ def parse_iso_date(s: str) -> Optional[date]:
 # Données factices (remplace par ta base plus tard)
 # ---------------------------------------------
 DELIVERIES: List[Dict[str, Any]] = [
-    {"date": "2025-
+    {"date": "2025-08-28", "supplier": "Coreff",   "product": "Blonde 30L", "quantity": 4, "deposit": 60.0, "invoice_no": "F-2025-0812"},
+    {"date": "2025-08-21", "supplier": "Bzh Craft","product": "IPA 20L",    "quantity": 3, "deposit": 45.0, "invoice_no": "BC-2025-031"},
+]
+
+KEGS: List[Dict[str, Any]] = [
+    {"id": "K-001", "product": "Blonde 30L", "size_l": 30, "status": "full",  "location": "Chai",    "updated_at": "2025-08-28"},
+    {"id": "K-002", "product": "IPA 20L",    "size_l": 20, "status": "empty", "location": "Bar",     "updated_at": "2025-08-29"},
+    {"id": "K-003", "product": "Ambrée 30L", "size_l": 30, "status": "lost",  "location": "Inconnu", "updated_at": "2025-07-31"},
+]
+
+# ---------------------------------------------
+# Calculs métriques
+# ---------------------------------------------
+def compute_consigne_balance(deliveries: List[Dict[str, Any]]) -> float:
+    return float(sum(d.get("deposit", 0.0) or 0.0 for d in deliveries))
+
+def deliveries_in_month(deliveries: List[Dict[str, Any]], ref: date) -> int:
+    return sum(
+        1 for d in deliveries
+        if (dt := parse_iso_date(d.get("date") or "")) and dt.year == ref.year and dt.month == ref.month
+    )
+
+def recent_deliveries(deliveries: List[Dict[str, Any]], limit: int = 10) -> List[Dict[str, Any]]:
+    def key_fn(d):
+        dt = parse_iso_date(d.get("date") or "") or date(1970, 1, 1)
+        return dt
+    return sorted(deliveries, key=key_fn, reverse=True)[:limit]
+
+def kegs_in_circulation(kegs: List[Dict[str, Any]], limit: int = 10) -> List[Dict[str, Any]]:
+    def key_fn(k):
+        dt = parse_iso_date(k.get("updated_at") or "") or date(1970, 1, 1)
+        return dt
+    return sorted(kegs, key=key_fn, reverse=True)[:limit]
+
+def count_pending_returns(kegs: List[Dict[str, Any]]) -> int:
+    # placeholder : considère "full" comme à récupérer
+    return sum(1 for k in kegs if (k.get("status") or "unknown") == "full")
+
+# ---------------------------------------------
+# Routes principales
+# ---------------------------------------------
+@app.route("/", methods=["GET", "HEAD"])
+def index():
+    today = date.today()
+    ctx = dict(
+        consigne_balance=compute_consigne_balance(DELIVERIES),
+        total_kegs=len(KEGS),
+        deliveries_this_month=deliveries_in_month(DELIVERIES, today),
+        pending_returns=count_pending_returns(KEGS),
+        current_month_label=month_label_fr(today),
+        last_sync=datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+        build_version=os.getenv("RENDER_GIT_COMMIT", "dev")[:7],
+        recent_deliveries=recent_deliveries(DELIVERIES, limit=8),
+        kegs_in_circulation=kegs_in_circulation(KEGS, limit=8),
+    )
+    try:
+        return render_template("index.html", **ctx)
+    except Exception:
+        app.logger.exception("Erreur de rendu index.html")
+        return render_template("500.html", error_id=str(uuid4())), 500
+
+@app.route("/deliveries", methods=["GET"])
+def deliveries_view():
+    q = (request.args.get("q") or "").strip().lower()
+    rows = DELIVERIES
+    if q:
+        rows = [
+            d for d in DELIVERIES
+            if q in str(d.get("supplier", "")).lower()
+            or q in str(d.get("product", "")).lower()
+            or q in str(d.get("invoice_no", "")).lower()
+            or q in str(d.get("date", "")).lower()
+        ]
+    try:
+        return render_template("deliveries.html", deliveries=rows)
+    except Exception:
+        app.logger.exception("Erreur de rendu deliveries.html")
+        return render_template("500.html", error_id=str(uuid4())), 500
+
+@app.route("/kegs", methods=["GET"])
+def kegs_view():
+    try:
+        return render_template("kegs.html", kegs=KEGS, total_kegs=len(KEGS))
+    except Exception:
+        app.logger.exception("Erreur de rendu kegs.html")
+        return render_template("500.html", error_id=str(uuid4())), 500
+
+# ---------------------------------------------
+# Diagnostics & santé
+# ---------------------------------------------
+@app.route("/healthz")
+def healthz():
+    return jsonify(status="ok", time=datetime.utcnow().isoformat() + "Z")
+
+@app.route("/diag")
+def diag():
+    info = []
+    info.append(f"template_folder = {app.template_folder!r}")
+    try:
+        source, filename, uptodate = app.jinja_env.loader.get_source(app.jinja_env, "index.html")
+        info.append(f"index.html trouvé : {filename}")
+    except TemplateNotFound:
+        info.append("index.html introuvable dans le template loader")
+    return "<br>".join(info)
+
+@app.route("/test-template/<name>")
+def test_template(name):
+    try:
+        return render_template(name)
+    except Exception as e:
+        app.logger.exception(f"Echec rendu template {name}")
+        return f"Erreur lors du rendu de {name}: {e}", 500
+
+# ---------------------------------------------
+# Handlers d’erreurs
+# ---------------------------------------------
+@app.errorhandler(404)
+def not_found(e):
+    try:
+        return render_template("404.html"), 404
+    except Exception:
+        app.logger.exception("Erreur de rendu 404.html")
+        return "404 Not Found", 404
+
+@app.errorhandler(500)
+def internal_error(e):
+    err_id = str(uuid4())
+    app.logger.exception(f"[{err_id}] 500 Internal Server Error")
+    try:
+        return render_template("500.html", error_id=err_id), 500
+    except Exception:
+        return f"500 Internal Server Error — {err_id}", 500
+
+# ---------------------------------------------
+# Entrée locale (Render utilise gunicorn app:app)
+# ---------------------------------------------
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=False)
