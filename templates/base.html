@@ -2,38 +2,50 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}Keg Tracer{% endblock %}</title>
+  <title>Keg Tracer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    :root { --fg:#111; --muted:#666; --bg:#fff; --line:#eee; --brand:#0b6efd; }
-    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial; margin:16px; color:var(--fg); background:var(--bg); }
-    nav a { margin-right:10px; color:var(--brand); text-decoration:none; }
-    h1 { margin:12px 0 6px; }
-    .muted { color:var(--muted); }
-    .cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin:12px 0; }
-    .card { border:1px solid var(--line); border-radius:12px; padding:12px; }
-    .card-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
-    .card-value { font-size:22px; font-weight:600; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:10px; border-bottom:1px solid var(--line); text-align:left; }
-    th { background:#fafafa; font-weight:600; }
-    .pill { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
+    header{background:#111;color:#fff;padding:12px 16px}
+    header a{color:#fff;text-decoration:none;margin-right:14px}
+    .wrap{max-width:960px;margin:0 auto;padding:16px}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{padding:8px 10px;border-bottom:1px solid #eee;text-align:left}
+    tr:hover{background:#f9f9f9}
+    .grid{display:grid;gap:16px}
+    .card{background:#fff;border:1px solid #eee;border-radius:10px;padding:16px}
+    .btn{padding:6px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer}
+    .btn-primary{background:#0d6efd;color:#fff;border-color:#0d6efd}
+    .btn-danger{background:#dc3545;color:#fff;border-color:#dc3545}
+    .btn-sm{font-size:0.9rem;padding:4px 8px}
+    .flash{padding:10px 12px;border-radius:8px;margin-bottom:12px}
+    .flash.success{background:#e7f8ee;border:1px solid #b7e7c8}
+    .flash.danger{background:#fde7e9;border:1px solid #f3b6bc}
+    .flash.warning{background:#fff6e5;border:1px solid #ffe0a6}
+    form.inline{display:inline}
+    input,select{padding:6px 8px;border:1px solid #ddd;border-radius:6px}
+    label{font-size:.9rem;color:#555}
   </style>
 </head>
 <body>
-  <nav>
-    <a href="/">Dashboard</a>
-    <a href="/clients">Clients</a>
-    <a href="/deliveries">Livraisons</a>
-    <a href="/kegs">Fûts</a>
-    <a href="/catalog">Catalogue</a>
-    · <a href="/admin/add-product">+ Produit</a>
-    <a href="/admin/add-client">+ Client</a>
-    <a href="/admin/add-transaction">+ Mouvement</a>
-    <a href="/admin/add-delivery">+ Livraison</a>
-    <a href="/admin/add-keg">+ Fût</a>
-  </nav>
-  <hr style="border:none;border-top:1px solid #eee;margin:8px 0 16px">
-  {% block content %}{% endblock %}
+  <header>
+    <a href="{{ url_for('index') }}"><strong>Keg Tracer</strong></a>
+    <a href="{{ url_for('clients') }}">Clients</a>
+    <a href="{{ url_for('catalog_view') }}">Catalogue</a>
+    <a href="{{ url_for('deliveries_view') }}">Livraisons</a>
+    <a href="{{ url_for('kegs_view') }}">Fûts</a>
+  </header>
+
+  <div class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
 </body>
 </html>
