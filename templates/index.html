@@ -1,31 +1,66 @@
 {% extends "base.html" %}
+{% block title %}Dashboard · Suivi des Fûts{% endblock %}
 {% block content %}
+<h1 class="page-title">Dashboard</h1>
+
 <section class="cards">
-  <div class="card"><h3>Fûts livrés (total)</h3><p>{{ deliveries }}</p></div>
-  <div class="card"><h3>Fûts repris pleins</h3><p>{{ ret_full }}</p></div>
-  <div class="card"><h3>Vides récupérés</h3><p>{{ ret_empty }}</p></div>
-  <div class="card"><h3>Fûts encore chez clients</h3><p>{{ outstanding_kegs }}</p></div>
-  <div class="card"><h3>Vides encore à récupérer</h3><p>{{ outstanding_empties }}</p></div>
-  <div class="card"><h3>Consignes en circulation (€)</h3><p>{{ '%.2f'|format(outstanding_consigne) }}</p></div>
+  <div class="card stat">
+    <div class="stat-value">{{ deliveries }}</div>
+    <div class="stat-label">Fûts livrés</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-value">{{ ret_full }}</div>
+    <div class="stat-label">Retours pleins</div>
+  </div>
+  <div class="card stat">
+    <div class="stat-value">{{ ret_empty }}</div>
+    <div class="stat-label">Retours vides</div>
+  </div>
+  <div class="card stat warn">
+    <div class="stat-value">{{ outstanding_kegs }}</div>
+    <div class="stat-label">Fûts dehors (nets)</div>
+  </div>
+  <div class="card stat warn">
+    <div class="stat-value">{{ outstanding_empties }}</div>
+    <div class="stat-label">Vides attendus</div>
+  </div>
+  <div class="card stat accent">
+    <div class="stat-value">{{ "%.2f"|format(outstanding_consigne) }} €</div>
+    <div class="stat-label">Consigne en cours</div>
+  </div>
 </section>
 
-<h2>Par client</h2>
-<div class="table-responsive">
-<table>
-  <thead><tr><th>Client</th><th>Livrés</th><th>Repris (pleins)</th><th>Vides récup.</th><th>Fûts chez client</th><th>Vides dus</th><th>Consigne en cours (€)</th></tr></thead>
-  <tbody>
-    {% for row in per_client %}
-    <tr>
-      <td>{{ row.client.name }}</td>
-      <td>{{ row.delivered }}</td>
-      <td>{{ row.returned_full }}</td>
-      <td>{{ row.returned_empty }}</td>
-      <td>{{ row.kegs_out }}</td>
-      <td>{{ row.empties_due }}</td>
-      <td>{{ '%.2f'|format(row.consigne_out) }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+<section class="card">
+  <div class="card-header">
+    <h2>Par client</h2>
   </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+      <tr>
+        <th>Client</th>
+        <th class="num">Livrés</th>
+        <th class="num">Ret. pleins</th>
+        <th class="num">Ret. vides</th>
+        <th class="num">Dehors</th>
+        <th class="num">Vides dus</th>
+        <th class="num">Consigne (€)</th>
+      </tr>
+      </thead>
+      <tbody>
+      {% for row in per_client %}
+        <tr>
+          <td><a href="{{ url_for('report') }}?client_id={{ row.client.id }}" class="link">{{ row.client.name }}</a></td>
+          <td class="num">{{ row.delivered }}</td>
+          <td class="num">{{ row.returned_full }}</td>
+          <td class="num">{{ row.returned_empty }}</td>
+          <td class="num">{{ row.kegs_out }}</td>
+          <td class="num">{{ row.empties_due }}</td>
+          <td class="num">{{ "%.2f"|format(row.consigne_out) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}
