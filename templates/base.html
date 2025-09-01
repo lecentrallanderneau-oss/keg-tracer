@@ -1,33 +1,39 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>{% block title %}Keg Tracer{% endblock %}</title>
   <style>
-    :root{--primary:#0b6efd;--bg:#f7f7f9;--text:#222;--muted:#666;}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;}
-    .container{max-width:1000px;margin:24px auto;padding:0 16px;}
-    nav a{margin-right:12px;color:var(--primary);text-decoration:none;font-weight:600;}
-    nav{padding:16px 0}
-    .card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-    table{border-collapse:collapse;width:100%;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
-    th,td{border-bottom:1px solid #eee;padding:10px 12px;text-align:left}
-    th{background:#f3f4f6}
-    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-    .muted{color:var(--muted)}
+    :root { --fg:#111; --muted:#666; --bg:#fff; --line:#eee; --brand:#0b6efd; }
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial; margin:16px; color:var(--fg); background:var(--bg); }
+    nav a { margin-right:10px; color:var(--brand); text-decoration:none; }
+    h1 { margin:12px 0 6px; }
+    .muted { color:var(--muted); }
+    .cards { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin:12px 0; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:12px; }
+    .card-label { font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .card-value { font-size:22px; font-weight:600; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { padding:10px; border-bottom:1px solid var(--line); text-align:left; }
+    th { background:#fafafa; font-weight:600; }
+    .pill { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; border:1px solid var(--line); }
   </style>
 </head>
 <body>
-  <div class="container">
-    <nav>
-      <a href="/">Dashboard</a>
-      <a href="/clients">Clients</a>
-      <a href="/deliveries">Livraisons</a>
-      <a href="/kegs">Fûts</a>
-    </nav>
-    <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px 0">
-    {% block content %}{% endblock %}
-  </div>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/clients">Clients</a>
+    <a href="/deliveries">Livraisons</a>
+    <a href="/kegs">Fûts</a>
+    <a href="/catalog">Catalogue</a>
+    · <a href="/admin/add-product">+ Produit</a>
+    <a href="/admin/add-client">+ Client</a>
+    <a href="/admin/add-transaction">+ Mouvement</a>
+    <a href="/admin/add-delivery">+ Livraison</a>
+    <a href="/admin/add-keg">+ Fût</a>
+  </nav>
+  <hr style="border:none;border-top:1px solid #eee;margin:8px 0 16px">
+  {% block content %}{% endblock %}
 </body>
 </html>
