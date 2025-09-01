@@ -1,48 +1,36 @@
 <!doctype html>
-<html lang="fr" data-theme="auto">
+<html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>{% block title %}Suivi des Fûts{% endblock %}</title>
+  <title>Keg Tracer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <meta name="color-scheme" content="light dark">
+  <script defer src="{{ url_for('static', filename='pwa.js') }}?v=3"></script>
 </head>
 <body>
-  <header class="site-header">
-    <div class="container header-row">
-      <a class="brand" href="{{ url_for('index') }}">🍺 Keg Tracer</a>
-      <nav class="nav">
-        <a href="{{ url_for('index') }}" class="nav-link {% if request.path == '/' %}active{% endif %}">Dashboard</a>
-        <a href="{{ url_for('clients') }}" class="nav-link {% if request.path.startswith('/clients') %}active{% endif %}">Clients</a>
-        <a href="{{ url_for('beers') }}" class="nav-link {% if request.path.startswith('/beers') %}active{% endif %}">Bières</a>
-        <a href="{{ url_for('movements') }}" class="nav-link {% if request.path.startswith('/movements') %}active{% endif %}">Mouvements</a>
-        <a href="{{ url_for('report') }}" class="nav-link {% if request.path.startswith('/report') %}active{% endif %}">Rapport</a>
-      </nav>
-    </div>
+  <header class="app-header">
+    <nav class="tabs">
+      <a class="tab{% if request.path=='/' %} active{% endif %}" href="{{ url_for('index') }}">Accueil</a>
+      <a class="tab{% if request.path.startswith('/clients') %} active{% endif %}" href="{{ url_for('clients') }}">Clients</a>
+      <a class="tab{% if request.path.startswith('/beers') %} active{% endif %}" href="{{ url_for('beers') }}">Bières</a>
+      <a class="tab{% if request.path.startswith('/movements') %} active{% endif %}" href="{{ url_for('movements') }}">Mouvements</a>
+      <a class="tab{% if request.path.startswith('/report') %} active{% endif %}" href="{{ url_for('report') }}">Rapport</a>
+    </nav>
   </header>
 
-  {% with messages = get_flashed_messages() %}
-    {% if messages %}
-      <div class="container">
-        {% for m in messages %}
-          <div class="alert">{{ m }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-wrap">
+      {% for cat, msg in messages %}
+        <div class="flash {{ 'ok' if cat=='ok' else 'err' }}">{{ msg }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
   {% endwith %}
 
   <main class="container">
     {% block content %}{% endblock %}
   </main>
-
-  <footer class="site-footer">
-    <div class="container footer-row">
-      <div>© {{ 2025 if 0 else (now().year if false else '') }} Keg Tracer</div>
-      <div class="muted">Build: Render</div>
-    </div>
-  </footer>
-
-  <script defer src="{{ url_for('static', filename='pwa.js', v=3) }}"></script>
 </body>
 </html>
