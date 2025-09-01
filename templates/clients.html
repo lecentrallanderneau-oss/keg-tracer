@@ -1,1 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Clients — Keg Tracer{% endblock %}
+{% block content %}
+<h1>Clients</h1>
+
+<table>
+  <thead>
+    <tr>
+      <th>Client</th>
+      <th>Fûts en stock (net)</th>
+      <th>Consigne nette</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for c in clients|default([], true) %}
+    <tr>
+      <td>{{ c.name }}</td>
+      <td>{{ c.total_kegs }}</td>
+      <td>{{ '{:,.2f}'.format((c.total_deposit_eur|default(0)|float)) }} €</td>
+      <td><a href="/clients/{{ c.id }}">Détails</a></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">Aucun client</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
 
