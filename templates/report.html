@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Rapport</h2>
+<form method="get" class="filters">
+  <label>Client</label>
+  <select name="client_id">
+    <option value="">Tous</option>
+    {% for c in clients %}<option value="{{ c.id }}" {% if selected_client_id==c.id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+  </select>
+  <label>Bière</label>
+  <select name="beer_id">
+    <option value="">Toutes</option>
+    {% for b in beers %}<option value="{{ b.id }}" {% if selected_beer_id==b.id %}selected{% endif %}>{{ b.name }}</option>{% endfor %}
+  </select>
+  <label>De</label>
+  <input type="date" name="from" value="{{ start.isoformat() }}">
+  <label>À</label>
+  <input type="date" name="to" value="{{ (end - (end - start)).isoformat() }}">
+  <button type="submit">Filtrer</button>
+  <span class="spacer"></span>
+  <label>Mois N mois en arrière</label>
+  <input type="number" name="months_back" min="0" placeholder="ex. 3" value="{{ months_back or '' }}">
+  <button type="submit">Aller</button>
+</form>
+
+<section class="cards">
+  <div class="card"><h3>Livrés</h3><p>{{ delivered }}</p></div>
+  <div class="card"><h3>Repris (pleins)</h3><p>{{ returned_full }}</p></div>
+  <div class="card"><h3>Vides récupérés</h3><p>{{ returned_empty }}</p></div>
+  <div class="card"><h3>Consigne facturée (€)</h3><p>{{ '%.2f'|format(consigne_charged) }}</p></div>
+  <div class="card"><h3>Consigne remboursée (€)</h3><p>{{ '%.2f'|format(consigne_refunded) }}</p></div>
+</section>
+
+<h3>Par type de bière</h3>
+<table>
+  <thead><tr><th>Bière</th><th>Livrés</th><th>Repris (pleins)</th><th>Vides récupérés</th></tr></thead>
+  <tbody>
+    {% for beer, data in breakdown.items() %}
+    <tr>
+      <td>{{ beer }}</td>
+      <td>{{ data.delivered }}</td>
+      <td>{{ data.returned_full }}</td>
+      <td>{{ data.returned_empty }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h3>Détails</h3>
+<table>
+  <thead><tr><th>Date</th><th>Type</th><th>Client</th><th>Bière</th><th>Qté</th><th>Consigne/fût</th><th>Notes</th></tr></thead>
+  <tbody>
+    {% for m in moves %}
+    <tr>
+      <td>{{ m.dt.isoformat() }}</td>
+      <td>{{ 'Livraison' if m.mtype=='delivery' else ('Reprise pleine' if m.mtype=='return_full' else 'Reprise vide') }}</td>
+      <td>{{ m.client.name }}</td>
+      <td>{{ m.beer.name }}</td>
+      <td>{{ m.qty }}</td>
+      <td>{{ '%.2f'|format(m.consigne_per_keg) }}</td>
+      <td>{{ m.notes or '' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

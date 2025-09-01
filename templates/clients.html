@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Clients</h2>
+<form method="post" action="{{ url_for('add_client') }}" class="inline-form">
+  <input type="text" name="name" placeholder="Nom du client" required>
+  <input type="text" name="address" placeholder="Adresse">
+  <input type="email" name="email" placeholder="Email">
+  <input type="text" name="siret" placeholder="SIRET">
+  <button type="submit">Ajouter</button>
+</form>
+<table>
+  <thead><tr><th>Nom</th><th>Adresse</th><th>Email</th><th>SIRET</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for c in clients %}
+    <tr>
+      <td>{{ c.name }}</td>
+      <td>{{ c.address or '' }}</td>
+      <td>{{ c.email or '' }}</td>
+      <td>{{ c.siret or '' }}</td>
+      <td>
+        <form method="post" action="{{ url_for('del_client', cid=c.id) }}" onsubmit="return confirm('Supprimer ? (efface aussi les mouvements liés)')">
+          <button type="submit">Supprimer</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

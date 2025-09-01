@@ -1,1 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="cards">
+  <div class="card"><h3>Fûts livrés (total)</h3><p>{{ deliveries }}</p></div>
+  <div class="card"><h3>Fûts repris pleins</h3><p>{{ ret_full }}</p></div>
+  <div class="card"><h3>Vides récupérés</h3><p>{{ ret_empty }}</p></div>
+  <div class="card"><h3>Fûts encore chez clients</h3><p>{{ outstanding_kegs }}</p></div>
+  <div class="card"><h3>Vides encore à récupérer</h3><p>{{ outstanding_empties }}</p></div>
+  <div class="card"><h3>Consignes en circulation (€)</h3><p>{{ '%.2f'|format(outstanding_consigne) }}</p></div>
+</section>
 
+<h2>Par client</h2>
+<table>
+  <thead><tr><th>Client</th><th>Livrés</th><th>Repris (pleins)</th><th>Vides récup.</th><th>Fûts chez client</th><th>Vides dus</th><th>Consigne en cours (€)</th></tr></thead>
+  <tbody>
+    {% for row in per_client %}
+    <tr>
+      <td>{{ row.client.name }}</td>
+      <td>{{ row.delivered }}</td>
+      <td>{{ row.returned_full }}</td>
+      <td>{{ row.returned_empty }}</td>
+      <td>{{ row.kegs_out }}</td>
+      <td>{{ row.empties_due }}</td>
+      <td>{{ '%.2f'|format(row.consigne_out) }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

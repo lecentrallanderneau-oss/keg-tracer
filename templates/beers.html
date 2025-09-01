@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Bières</h2>
+<form method="post" action="{{ url_for('add_beer') }}" class="inline-form">
+  <input type="text" name="name" placeholder="Nom (ex. Blonde 30L)" required>
+  <input type="number" name="size_l" placeholder="Taille (L)" min="1">
+  <button type="submit">Ajouter</button>
+</form>
+<table>
+  <thead><tr><th>Nom</th><th>Taille (L)</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for b in beers %}
+    <tr>
+      <td>{{ b.name }}</td>
+      <td>{{ b.size_l }}</td>
+      <td>
+        <form method="post" action="{{ url_for('del_beer', bid=b.id) }}" onsubmit="return confirm('Supprimer ? (efface aussi les mouvements liés)')">
+          <button type="submit">Supprimer</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

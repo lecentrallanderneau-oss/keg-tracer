@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Ajouter un mouvement</h2>
+<form method="post">
+  <label>Date</label>
+  <input type="date" name="dt" value="{{ (caller or none) and '' or '' }}">
+  <label>Type</label>
+  <select name="mtype" required>
+    <option value="delivery">Livraison</option>
+    <option value="return_full">Reprise pleine</option>
+    <option value="return_empty">Reprise vide</option>
+  </select>
+  <label>Client</label>
+  <select name="client_id" required>
+    {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
+  </select>
+  <label>Bière</label>
+  <select name="beer_id" required>
+    {% for b in beers %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
+  </select>
+  <label>Quantité (fûts)</label>
+  <input type="number" name="qty" min="1" value="1" required>
+  <label>Consigne par fût (€)</label>
+  <input type="number" name="consigne_per_keg" step="0.01" min="0" value="0">
+  <label>Notes</label>
+  <textarea name="notes" rows="2"></textarea>
+  <button type="submit">Enregistrer</button>
+</form>
+<p class="hint">Astuce : en livraison, indique la consigne par fût pour calculer les consignes en circulation. En reprise de vide, la même valeur indiquera le remboursement de consigne.</p>
+{% endblock %}
