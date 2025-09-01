@@ -1,63 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — Keg Tracer{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
-<p class="muted">Mise à jour {{ last_sync }} · Build {{ build_version }}</p>
-
-<div class="cards">
-  <div class="card">
-    <div class="card-label">Consigne cumulée (achats fournisseurs)</div>
-    <div class="card-value">{{ (consigne_balance|default(0)|float)|round(2) }} €</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Fûts référencés</div>
-    <div class="card-value">{{ total_kegs|default(0) }}</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Livraisons ce mois ({{ current_month_label }})</div>
-    <div class="card-value">{{ deliveries_this_month|default(0) }}</div>
-  </div>
-  <div class="card">
-    <div class="card-label">Fûts à récupérer (status = full)</div>
-    <div class="card-value">{{ pending_returns|default(0) }}</div>
-  </div>
+<h2>Tableau de bord</h2>
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));">
+  <div class="card"><div>Total consigne</div><div style="font-size:1.6rem;font-weight:700;">{{ "%.2f"|format(consigne_balance) }} €</div></div>
+  <div class="card"><div>Clients</div><div style="font-size:1.6rem;font-weight:700;">{{ client_count }}</div></div>
+  <div class="card"><div>Produits actifs</div><div style="font-size:1.6rem;font-weight:700;">{{ product_count }}</div></div>
+  <div class="card"><div>Livraisons</div><div style="font-size:1.6rem;font-weight:700;">{{ delivery_count }}</div></div>
+  <div class="card"><div>Fûts</div><div style="font-size:1.6rem;font-weight:700;">{{ keg_count }}</div></div>
 </div>
-
-<h2>Dernières livraisons</h2>
-<table>
-  <thead><tr><th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th><th>Facture</th></tr></thead>
-  <tbody>
-  {% for r in recent_deliveries|default([], true) %}
-    <tr>
-      <td>{{ r.date }}</td>
-      <td>{{ r.supplier }}</td>
-      <td>{{ r.product }}</td>
-      <td>{{ r.quantity }}</td>
-      <td>{{ r.deposit }} €</td>
-      <td>{{ r.invoice_no }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="6" class="muted">Aucune livraison.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
-
-<h2>Fûts en circulation</h2>
-<table>
-  <thead><tr><th>ID</th><th>Produit</th><th>L</th><th>Statut</th><th>Lieu</th><th>MAJ</th></tr></thead>
-  <tbody>
-  {% for k in kegs_in_circulation|default([], true) %}
-    <tr>
-      <td class="pill">{{ k.id }}</td>
-      <td>{{ k.product }}</td>
-      <td>{{ k.size_l }}</td>
-      <td>{{ k.status }}</td>
-      <td>{{ k.location }}</td>
-      <td>{{ k.updated_at }}</td>
-    </tr>
-  {% else %}
-    <tr><td colspan="6" class="muted">Aucun fût référencé.</td></tr>
-  {% endfor %}
-  </tbody>
-</table>
 {% endblock %}
