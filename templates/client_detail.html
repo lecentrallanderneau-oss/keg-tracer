@@ -1,67 +1,52 @@
 {% extends "base.html" %}
-{% block title %}{{ client.name }} — Keg Tracer{% endblock %}
+{% block title %}Client — Keg Tracer{% endblock %}
 {% block content %}
 <h1>{{ client.name }}</h1>
+<p class="muted">
+  ID {{ client.id }} · <a href="/admin/add-transaction">+ Ajouter un mouvement</a>
+</p>
 
-<div class="card">
-  <h2 style="margin-top:0">Solde</h2>
-  <ul>
-    <li>Fûts en stock (net) : <strong>{{ balance.total_kegs|default(0) }}</strong></li>
-    <li>Consigne nette : <strong>{{ '{:,.2f}'.format((balance.total_deposit_eur|default(0)|float)) }} €</strong></li>
-  </ul>
-</div>
-
-<div class="card">
-  <h2 style="margin-top:0">Détail par produit</h2>
-  {% set rows = balance.by_sku|default([], true) %}
-  {% if rows %}
-  <table>
-    <thead>
-      <tr><th>Produit</th><th>Contenance</th><th>Qté nette</th><th>Consigne</th></tr>
-    </thead>
-    <tbody>
-      {% for r in rows %}
-      <tr>
-        <td>{{ r.product }}</td>
-        <td>{{ r.size_l }} L</td>
-        <td>{{ r.qty }}</td>
-        <td>{{ '{:,.2f}'.format((r.deposit_eur|default(0)|float)) }} €</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<h2>Stock attendu (net)</h2>
+<table>
+  <thead><tr><th>Produit</th><th>L</th><th>Qté</th><th>Consigne (€)</th></tr></thead>
+  <tbody>
+  {% for r in balance.by_sku|default([], true) %}
+    <tr>
+      <td>{{ r.product }}</td>
+      <td>{{ r.size_l }}</td>
+      <td>{{ r.qty }}</td>
+      <td>{{ (r.deposit_eur|default(0)|float)|round(2) }}</td>
+    </tr>
   {% else %}
-  <p class="muted">Aucun mouvement.</p>
-  {% endif %}
-</div>
+    <tr><td colspan="4" class="muted">Aucun mouvement.</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <th colspan="2">Total</th>
+      <th>{{ balance.total_kegs|default(0) }}</th>
+      <th>{{ (balance.total_deposit_eur|default(0)|float)|round(2) }}</th>
+    </tr>
+  </tfoot>
+</table>
 
-<div class="card">
-  <h2 style="margin-top:0">Historique des mouvements</h2>
-  {% set tx = transactions|default([], true) %}
-  {% if tx %}
-  <table>
-    <thead>
-      <tr><th>Date</th><th>Type</th><th>Produit</th><th>L</th><th>Qté</th><th>Consigne</th><th>Doc</th></tr>
-    </thead>
-    <tbody>
-      {% for t in tx %}
-      <tr>
-        <td>{{ t.date }}</td>
-        <td>{{ t.type }}</td>
-        <td>{{ t.product }}</td>
-        <td>{{ t.size_l }}</td>
-        <td>{{ t.qty }}</td>
-        <td>{{ '{:,.2f}'.format((t.deposit_eur|default(0)|float)) }} €</td>
-        <td>{{ t.doc_no }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+<h2>Historique des mouvements</h2>
+<table>
+  <thead><tr><th>Date</th><th>Type</th><th>Produit</th><th>L</th><th>Qté</th><th>Consigne (€)</th><th>Doc</th></tr></thead>
+  <tbody>
+  {% for t in transactions|default([], true) %}
+    <tr>
+      <td>{{ t.date }}</td>
+      <td>{{ t.type }}</td>
+      <td>{{ t.product }}</td>
+      <td>{{ t.size_l }}</td>
+      <td>{{ t.qty }}</td>
+      <td>{{ (t.deposit_eur|default(0)|float)|round(2) }}</td>
+      <td>{{ t.doc_no }}</td>
+    </tr>
   {% else %}
-  <p class="muted">Aucun mouvement.</p>
-  {% endif %}
-</div>
-
-<p style="margin-top: 16px;"><a href="/clients">← Retour à la liste</a></p>
+    <tr><td colspan="7" class="muted">Aucun mouvement.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
-
