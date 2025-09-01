@@ -1,30 +1,67 @@
 {% extends "base.html" %}
+{% block title %}Ajouter un mouvement · Suivi des Fûts{% endblock %}
 {% block content %}
+
 <h2>Ajouter un mouvement</h2>
-<form method="post">
-  <label>Date</label>
-  <input type="date" name="dt" value="{{ (caller or none) and '' or '' }}">
-  <label>Type</label>
-  <select name="mtype" required>
-    <option value="delivery">Livraison</option>
-    <option value="return_full">Reprise pleine</option>
-    <option value="return_empty">Reprise vide</option>
-  </select>
-  <label>Client</label>
-  <select name="client_id" required>
-    {% for c in clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}
-  </select>
-  <label>Bière</label>
-  <select name="beer_id" required>
-    {% for b in beers %}<option value="{{ b.id }}">{{ b.name }}</option>{% endfor %}
-  </select>
-  <label>Quantité (fûts)</label>
-  <input type="number" name="qty" min="1" value="1" required>
-  <label>Consigne par fût (€)</label>
-  <input type="number" name="consigne_per_keg" step="0.01" min="0" value="0">
-  <label>Notes</label>
-  <textarea name="notes" rows="2"></textarea>
-  <button type="submit">Enregistrer</button>
+
+<form method="post" action="{{ url_for('movement_add') }}" style="display:grid; gap:12px; max-width:720px;">
+  <div style="display:grid; gap:8px; grid-template-columns: repeat(2, minmax(0,1fr));">
+    <div>
+      <label for="dt">Date</label>
+      <input type="date" id="dt" name="dt" value="{{ date.today().isoformat() }}" required>
+    </div>
+
+    <div>
+      <label for="mtype">Type</label>
+      <select id="mtype" name="mtype" required>
+        <option value="delivery">Livraison</option>
+        <option value="return_full">Retour plein</option>
+        <option value="return_empty">Retour vide</option>
+      </select>
+    </div>
+
+    <div>
+      <label for="client_id">Client</label>
+      <select id="client_id" name="client_id" required>
+        {% for c in clients %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="beer_id">Bière</label>
+      <select id="beer_id" name="beer_id" required>
+        {% for b in beers %}
+          <option value="{{ b.id }}">{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="qty">Quantité (fûts)</label>
+      <input type="number" id="qty" name="qty" min="1" step="1" value="1" required>
+    </div>
+
+    <div>
+      <label for="consigne_per_keg">Consigne / fût (€)</label>
+      <input type="number" id="consigne_per_keg" name="consigne_per_keg" min="0" step="0.01" value="0">
+    </div>
+  </div>
+
+  <div>
+    <label for="notes">Notes</label>
+    <textarea id="notes" name="notes" rows="3" placeholder="Infos complémentaires (optionnel)"></textarea>
+  </div>
+
+  <div style="display:flex; gap:10px;">
+    <button type="submit">Enregistrer</button>
+    <a href="{{ url_for('movements') }}" style="align-self:center;">Annuler</a>
+  </div>
 </form>
-<p class="hint">Astuce : en livraison, indique la consigne par fût pour calculer les consignes en circulation. En reprise de vide, la même valeur indiquera le remboursement de consigne.</p>
+
+<p style="margin-top:8px; color:#64748b;">
+  Astuce : si tu es hors-ligne, l’enregistrement est mis en file et tu pourras le synchroniser plus tard avec le bouton <strong>Sync</strong>.
+</p>
+
 {% endblock %}
