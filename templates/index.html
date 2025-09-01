@@ -1,66 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Dashboard · Suivi des Fûts{% endblock %}
 {% block content %}
-<h1 class="page-title">Dashboard</h1>
+<h1 class="title">Vue d'ensemble</h1>
 
-<section class="cards">
-  <div class="card stat">
-    <div class="stat-value">{{ deliveries }}</div>
-    <div class="stat-label">Fûts livrés</div>
+<div class="cards">
+  <div class="card">
+    <div class="card-title">Livrés</div>
+    <div class="card-value">{{ deliveries }}</div>
   </div>
-  <div class="card stat">
-    <div class="stat-value">{{ ret_full }}</div>
-    <div class="stat-label">Retours pleins</div>
+  <div class="card">
+    <div class="card-title">Retours</div>
+    <div class="card-value">{{ returns }}</div>
   </div>
-  <div class="card stat">
-    <div class="stat-value">{{ ret_empty }}</div>
-    <div class="stat-label">Retours vides</div>
+  <div class="card">
+    <div class="card-title">En circulation</div>
+    <div class="card-value">{{ outstanding }}</div>
   </div>
-  <div class="card stat warn">
-    <div class="stat-value">{{ outstanding_kegs }}</div>
-    <div class="stat-label">Fûts dehors (nets)</div>
+  <div class="card">
+    <div class="card-title">Consigne (solde)</div>
+    <div class="card-value">{{ "%.2f"|format(consigne_balance) }} €</div>
   </div>
-  <div class="card stat warn">
-    <div class="stat-value">{{ outstanding_empties }}</div>
-    <div class="stat-label">Vides attendus</div>
-  </div>
-  <div class="card stat accent">
-    <div class="stat-value">{{ "%.2f"|format(outstanding_consigne) }} €</div>
-    <div class="stat-label">Consigne en cours</div>
-  </div>
-</section>
+</div>
 
-<section class="card">
-  <div class="card-header">
-    <h2>Par client</h2>
-  </div>
-  <div class="table-responsive">
-    <table class="table">
-      <thead>
-      <tr>
-        <th>Client</th>
-        <th class="num">Livrés</th>
-        <th class="num">Ret. pleins</th>
-        <th class="num">Ret. vides</th>
-        <th class="num">Dehors</th>
-        <th class="num">Vides dus</th>
-        <th class="num">Consigne (€)</th>
-      </tr>
-      </thead>
-      <tbody>
-      {% for row in per_client %}
-        <tr>
-          <td><a href="{{ url_for('report') }}?client_id={{ row.client.id }}" class="link">{{ row.client.name }}</a></td>
-          <td class="num">{{ row.delivered }}</td>
-          <td class="num">{{ row.returned_full }}</td>
-          <td class="num">{{ row.returned_empty }}</td>
-          <td class="num">{{ row.kegs_out }}</td>
-          <td class="num">{{ row.empties_due }}</td>
-          <td class="num">{{ "%.2f"|format(row.consigne_out) }}</td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+<div class="actions">
+  <a class="btn primary" href="{{ url_for('movement_add') }}">+ Nouveau mouvement</a>
+</div>
 {% endblock %}
