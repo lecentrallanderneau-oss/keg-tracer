@@ -2,5 +2,4 @@ flask==3.1.2
 flask_sqlalchemy==3.1.1
 sqlalchemy==2.0.43
 gunicorn==23.0.0
-# Remplacer psycopg2-binary par psycopg (psycopg3) binaire
 psycopg[binary]>=3.2,<3.3
