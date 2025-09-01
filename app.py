@@ -19,7 +19,7 @@ def _normalize_db_url(raw: str) -> str:
     return raw
 
 _db_url_env = os.getenv("DATABASE_URL", "")
-db_url = _normalize_db_url(__db_url_env)
+db_url = _normalize_db_url(_db_url_env)
 
 if db_url:
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
@@ -53,6 +53,7 @@ class Movement(db.Model):
     qty = db.Column(db.Integer, nullable=False, default=1)
     consigne_per_keg = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)  # anti-doublons
 
     client = db.relationship('Client')
     beer = db.relationship('Beer')
@@ -179,7 +180,6 @@ def movement_add():
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
     if request.method == 'POST':
-        # On NE crée PAS ici pour éviter les doublons (PWA gère via /api/movement).
         return redirect(url_for('movements'))
     return render_template('movement_form.html', clients=clients, beers=beers)
 
@@ -266,15 +266,26 @@ def api_ping():
 def api_movement():
     data = request.get_json(force=True) or {}
     try:
-        mv = Movement(
-            dt=datetime.fromisoformat(data.get('dt')).date() if data.get('dt') else date.today(),
-            mtype=data['mtype'],
-            client_id=int(data['client_id']),
-            beer_id=int(data['beer_id']),
-            qty=int(data.get('qty', 1)),
-            consigne_per_keg=float(data.get('consigne_per_keg', 0)),
-            notes=data.get('notes', '')
-        )
+        dt_val = datetime.fromisoformat(data.get('dt')).date() if data.get('dt') else date.today()
+        mtype = data['mtype']
+        client_id = int(data['client_id'])
+        beer_id = int(data['beer_id'])
+        qty = int(data.get('qty', 1))
+        consigne = float(data.get('consigne_per_keg', 0))
+        notes = data.get('notes', '')
+
+        # Anti-doublons : si même mouvement créé il y a < 30 s, on renvoie OK sans recréer
+        thirty_secs_ago = datetime.utcnow() - timedelta(seconds=30)
+        last = (Movement.query
+                .filter_by(dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
+                           qty=qty, consigne_per_keg=consigne, notes=notes)
+                .order_by(Movement.id.desc())
+                .first())
+        if last and last.created_at and last.created_at >= thirty_secs_ago:
+            return jsonify({'ok': True, 'id': last.id, 'dedup': True})
+
+        mv = Movement(dt=dt_val, mtype=mtype, client_id=client_id, beer_id=beer_id,
+                      qty=qty, consigne_per_keg=consigne, notes=notes)
         db.session.add(mv)
         db.session.commit()
         return jsonify({'ok': True, 'id': mv.id})
