@@ -3,34 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <title>Keg Tracer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+  <!-- iPhone & PWA friendly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <script defer src="{{ url_for('static', filename='pwa.js') }}?v=3"></script>
+  <script defer src="{{ url_for('static', filename='pwa.js') }}?v=4"></script>
 </head>
 <body>
-  <header class="app-header">
-    <nav class="tabs">
-      <a class="tab{% if request.path=='/' %} active{% endif %}" href="{{ url_for('index') }}">Accueil</a>
-      <a class="tab{% if request.path.startswith('/clients') %} active{% endif %}" href="{{ url_for('clients') }}">Clients</a>
-      <a class="tab{% if request.path.startswith('/beers') %} active{% endif %}" href="{{ url_for('beers') }}">Bières</a>
-      <a class="tab{% if request.path.startswith('/movements') %} active{% endif %}" href="{{ url_for('movements') }}">Mouvements</a>
-      <a class="tab{% if request.path.startswith('/report') %} active{% endif %}" href="{{ url_for('report') }}">Rapport</a>
-    </nav>
-  </header>
+  <!-- Contenu principal -->
+  <main class="container" id="app-root">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-wrap" role="status" aria-live="polite">
+        {% for cat, msg in messages %}
+          <div class="flash {{ 'ok' if cat=='ok' else 'err' }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% endwith %}
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="flash-wrap">
-      {% for cat, msg in messages %}
-        <div class="flash {{ 'ok' if cat=='ok' else 'err' }}">{{ msg }}</div>
-      {% endfor %}
-    </div>
-  {% endif %}
-  {% endwith %}
-
-  <main class="container">
     {% block content %}{% endblock %}
   </main>
+
+  <!-- Barre d’onglets en bas (reach thumb) -->
+  <nav class="bottom-nav" aria-label="Navigation principale">
+    <a class="tab{% if request.path=='/' %} active{% endif %}" href="{{ url_for('index') }}" aria-label="Accueil">Accueil</a>
+    <a class="tab{% if request.path.startswith('/clients') %} active{% endif %}" href="{{ url_for('clients') }}" aria-label="Clients">Clients</a>
+    <a class="tab{% if request.path.startswith('/beers') %} active{% endif %}" href="{{ url_for('beers') }}" aria-label="Bières">Bières</a>
+    <a class="tab{% if request.path.startswith('/movements') %} active{% endif %}" href="{{ url_for('movements') }}" aria-label="Mouvements">Mouvements</a>
+    <a class="tab{% if request.path.startswith('/report') %} active{% endif %}" href="{{ url_for('report') }}" aria-label="Rapport">Rapport</a>
+  </nav>
 </body>
 </html>
