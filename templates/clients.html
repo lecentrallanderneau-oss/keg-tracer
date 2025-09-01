@@ -2,28 +2,20 @@
 {% block title %}Clients — Keg Tracer{% endblock %}
 {% block content %}
 <h1>Clients</h1>
-
+<p class="muted"><a href="/admin/add-client">+ Ajouter un client</a> · <a href="/admin/add-transaction">+ Mouvement</a></p>
 <table>
-  <thead>
-    <tr>
-      <th>Client</th>
-      <th>Fûts en stock (net)</th>
-      <th>Consigne nette</th>
-      <th></th>
-    </tr>
-  </thead>
+  <thead><tr><th>Client</th><th>Fûts nets</th><th>Consigne nette (€)</th><th></th></tr></thead>
   <tbody>
   {% for c in clients|default([], true) %}
     <tr>
       <td>{{ c.name }}</td>
       <td>{{ c.total_kegs }}</td>
-      <td>{{ '{:,.2f}'.format((c.total_deposit_eur|default(0)|float)) }} €</td>
-      <td><a href="/clients/{{ c.id }}">Détails</a></td>
+      <td>{{ (c.total_deposit_eur|default(0)|float)|round(2) }}</td>
+      <td><a href="/clients/{{ c.id }}">Voir</a></td>
     </tr>
   {% else %}
-    <tr><td colspan="4" class="muted">Aucun client</td></tr>
+    <tr><td colspan="4" class="muted">Aucun client.</td></tr>
   {% endfor %}
   </tbody>
 </table>
 {% endblock %}
-
