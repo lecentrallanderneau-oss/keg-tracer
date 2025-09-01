@@ -36,11 +36,11 @@
   </div>
   <div>
     <label>Du</label>
-    <input type="date" name="from" value="{{ start }}">
+    <input type="date" name="from" value="{{ start.isoformat() if start else '' }}">
   </div>
   <div>
     <label>Au</label>
-    <input type="date" name="to" value="{{ end }}">
+    <input type="date" name="to" value="{{ end.isoformat() if end else '' }}">
   </div>
   <div style="align-self:end;">
     <button type="submit">Filtrer</button>
@@ -49,11 +49,11 @@
 
 <h3 style="margin-top:18px;">Synthèse</h3>
 <ul>
-  <li>Livrés : <strong>{{ delivered }}</strong></li>
-  <li>Retours pleins : <strong>{{ returned_full }}</strong></li>
-  <li>Retours vides : <strong>{{ returned_empty }}</strong></li>
-  <li>Consignes facturées : <strong>{{ '%.2f'|format(consigne_charged) }}</strong></li>
-  <li>Consignes remboursées : <strong>{{ '%.2f'|format(consigne_refunded) }}</strong></li>
+  <li>Livrés : <strong>{{ delivered or 0 }}</strong></li>
+  <li>Retours pleins : <strong>{{ returned_full or 0 }}</strong></li>
+  <li>Retours vides : <strong>{{ returned_empty or 0 }}</strong></li>
+  <li>Consignes facturées : <strong>{{ (consigne_charged or 0)|float|round(2) }}</strong></li>
+  <li>Consignes remboursées : <strong>{{ (consigne_refunded or 0)|float|round(2) }}</strong></li>
 </ul>
 
 <h3>Détail par bière</h3>
@@ -68,7 +68,7 @@
       </tr>
     </thead>
     <tbody>
-      {% for beer_name, data in breakdown.items() %}
+      {% for beer_name, data in (breakdown or {}).items() %}
       <tr>
         <td>{{ beer_name }}</td>
         <td>{{ data.delivered }}</td>
@@ -93,12 +93,17 @@
     <tbody>
       {% for m in moves %}
       <tr>
-        <td>{{ m.dt }}</td>
-        <td>{{ 'Livraison' if m.mtype=='delivery' else ('Retour plein' if m.mtype=='return_full' else 'Retour vide') }}</td>
-        <td>{{ m.client.name }}</td>
-        <td>{{ m.beer.name }}</td>
-        <td>{{ m.qty }}</td>
-        <td>{{ '%.2f'|format(m.consigne_per_keg) }}</td>
+        <td>{{ m.dt.isoformat() if m.dt else '' }}</td>
+        <td>
+          {% if m.mtype=='delivery' %}Livraison
+          {% elif m.mtype=='return_full' %}Retour plein
+          {% elif m.mtype=='return_empty' %}Retour vide
+          {% else %}{{ m.mtype }}{% endif %}
+        </td>
+        <td>{{ m.client.name if m.client else '' }}</td>
+        <td>{{ m.beer.name if m.beer else '' }}</td>
+        <td>{{ m.qty or 0 }}</td>
+        <td>{{ ((m.consigne_per_keg or 0)|float)|round(2) }}</td>
         <td>{{ m.notes or '' }}</td>
       </tr>
       {% else %}
