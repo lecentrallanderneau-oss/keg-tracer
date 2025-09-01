@@ -1,10 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Erreur serveur{% endblock %}
 {% block content %}
-<div class="empty">
-<h1 class="h4">Oups, une erreur s’est produite.</h1>
-<p>Réessayez plus tard ou contactez l’admin.</p>
-<pre class="mt-3">{{ error_id|default('') }}</pre>
-<a href="/" class="btn btn-outline-light btn-sm">Retour au dashboard</a>
-</div>
+<h1>Erreur serveur</h1>
+<p>Une erreur est survenue.</p>
+<p class="muted">ID erreur : {{ error_id|default('') }}</p>
+<p><a href="/">← Retour au dashboard</a></p>
 {% endblock %}
