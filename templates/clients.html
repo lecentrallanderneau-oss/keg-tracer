@@ -1,29 +1,52 @@
 {% extends "base.html" %}
+{% block title %}Clients · Suivi des Fûts{% endblock %}
 {% block content %}
-<h2>Clients</h2>
-<form method="post" action="{{ url_for('add_client') }}" class="inline-form">
-  <input type="text" name="name" placeholder="Nom du client" required>
-  <input type="text" name="address" placeholder="Adresse">
-  <input type="email" name="email" placeholder="Email">
-  <input type="text" name="siret" placeholder="SIRET">
-  <button type="submit">Ajouter</button>
-</form>
-<table>
-  <thead><tr><th>Nom</th><th>Adresse</th><th>Email</th><th>SIRET</th><th>Actions</th></tr></thead>
-  <tbody>
-  {% for c in clients %}
-    <tr>
-      <td>{{ c.name }}</td>
-      <td>{{ c.address or '' }}</td>
-      <td>{{ c.email or '' }}</td>
-      <td>{{ c.siret or '' }}</td>
-      <td>
-        <form method="post" action="{{ url_for('del_client', cid=c.id) }}" onsubmit="return confirm('Supprimer ? (efface aussi les mouvements liés)')">
-          <button type="submit">Supprimer</button>
-        </form>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+<h1 class="page-title">Clients</h1>
+
+<section class="grid-2">
+  <div class="card">
+    <div class="card-header"><h2>Ajouter un client</h2></div>
+    <form method="post" action="{{ url_for('add_client') }}" class="form">
+      <label>Nom
+        <input type="text" name="name" required>
+      </label>
+      <label>Adresse
+        <input type="text" name="address">
+      </label>
+      <label>Email
+        <input type="email" name="email">
+      </label>
+      <label>SIRET
+        <input type="text" name="siret">
+      </label>
+      <div class="form-actions">
+        <button class="btn">Ajouter</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Liste</h2></div>
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr><th>Nom</th><th>Adresse</th><th>Email</th><th>SIRET</th><th></th></tr></thead>
+        <tbody>
+        {% for c in clients %}
+          <tr>
+            <td>{{ c.name }}</td>
+            <td class="truncate">{{ c.address or "—" }}</td>
+            <td class="truncate">{{ c.email or "—" }}</td>
+            <td>{{ c.siret or "—" }}</td>
+            <td class="actions">
+              <form method="post" action="{{ url_for('del_client', cid=c.id) }}" onsubmit="return confirm('Supprimer ce client ?');">
+                <button class="btn danger" title="Supprimer">✕</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 {% endblock %}
