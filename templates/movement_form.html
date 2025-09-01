@@ -1,38 +1,47 @@
 {% extends "base.html" %}
+{% block title %}Nouveau Mouvement{% endblock %}
 {% block content %}
-<h1 class="title">Nouveau mouvement</h1>
 
-<form method="post" class="form">
-  <label for="dt">Date</label>
-  <input type="date" id="dt" name="dt" value="{{ today_str }}" required>
+<h2>Ajouter un Mouvement</h2>
 
-  <label for="mtype">Type</label>
-  <select id="mtype" name="mtype" required>
-    <option value="delivery">Livraison</option>
-    <option value="return">Retour</option>
-  </select>
+<form method="post" style="display:grid; gap:10px; max-width:400px;">
+  <label>Date
+    <input type="date" name="dt" value="{{ date.today().isoformat() }}">
+  </label>
 
-  <label for="qty">Quantité (fûts)</label>
-  <input type="number" id="qty" name="qty" inputmode="numeric" min="1" step="1" required>
-
-  <label for="client_id">Client</label>
-  <select id="client_id" name="client_id" required>
-    {% for c in clients %}
+  <label>Client
+    <select name="client_id" required>
+      {% for c in clients %}
       <option value="{{ c.id }}">{{ c.name }}</option>
-    {% endfor %}
-  </select>
+      {% endfor %}
+    </select>
+  </label>
 
-  <label for="beer_id">Bière</label>
-  <select id="beer_id" name="beer_id" required>
-    {% for b in beers %}
+  <label>Bière
+    <select name="beer_id" required>
+      {% for b in beers %}
       <option value="{{ b.id }}">{{ b.name }}</option>
-    {% endfor %}
-  </select>
+      {% endfor %}
+    </select>
+  </label>
 
-  <label for="consigne_per_keg">Consigne par fût (€)</label>
-  <input type="number" id="consigne_per_keg" name="consigne_per_keg" min="0" step="0.01" placeholder="0.00">
+  <label>Type
+    <select name="mtype" required>
+      <option value="delivery">Livraison</option>
+      <option value="return_full">Retour plein</option>
+      <option value="return_empty">Retour vide</option>
+    </select>
+  </label>
 
-  <button class="btn primary" type="submit">Enregistrer</button>
-  <a class="btn" href="{{ url_for('movements') }}">Annuler</a>
+  <label>Quantité
+    <input type="number" name="qty" value="1" min="1" required>
+  </label>
+
+  <label>Notes
+    <textarea name="notes"></textarea>
+  </label>
+
+  <button type="submit">Enregistrer</button>
 </form>
+
 {% endblock %}
