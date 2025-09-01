@@ -1,36 +1,41 @@
 import os
-from datetime import datetime, date, timedelta
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, case
+from sqlalchemy import func
 
-# -----------------------------------------------------------------------------
-# App & DB config
-# -----------------------------------------------------------------------------
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret")
 
-# Récupère l'URL Render, normalise le schéma et force SSL.
-raw_db_url = os.getenv("DATABASE_URL", "sqlite:///kegs.db")
-# Render fournit parfois "postgres://" -> SQLAlchemy veut "postgresql://"
-if raw_db_url.startswith("postgres://"):
-    raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+# ---------------------------
+# Base de données (psycopg3)
+# ---------------------------
+def build_db_uri():
+    # 1) Récupère l’URL (Render met DATABASE_URL)
+    db_url = os.environ.get("DATABASE_URL", "sqlite:///kegs.db")
 
-# Si c'est du Postgres, assure sslmode=require s'il n'est pas déjà présent
-if raw_db_url.startswith("postgresql://") and "sslmode=" not in raw_db_url:
-    sep = "&" if "?" in raw_db_url else "?"
-    raw_db_url = f"{raw_db_url}{sep}sslmode=require"
+    # 2) Normalise le scheme pour SQLAlchemy + psycopg3
+    #    - "postgres://" (ancien) ou "postgresql://" -> "postgresql+psycopg://"
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
+    # 3) Ajoute sslmode=require si on est sur Render et que ce n'est pas déjà présent
+    if "RENDER" in os.environ and "sslmode=" not in db_url and db_url.startswith("postgresql+psycopg://"):
+        sep = "&" if "?" in db_url else "?"
+        db_url = f"{db_url}{sep}sslmode=require"
+
+    return db_url
+
+app.config["SQLALCHEMY_DATABASE_URI"] = build_db_uri()
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "change-me")
 
-# Options moteur pour fiabiliser Render (déconnexions/keepalive)
+# Robustesse connexion (réouvre proprement si coupée)
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_pre_ping": True,        # teste la connexion avant usage
-    "pool_recycle": 300,          # recycle connexions (sec)
-    "pool_size": 5,
-    "max_overflow": 5,
+    "pool_pre_ping": True,     # évite les connexions zombie
+    "pool_recycle": 300,       # recycle après 5 min
 }
 
 db = SQLAlchemy(app)
