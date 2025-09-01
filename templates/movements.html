@@ -22,12 +22,17 @@
     <tbody>
       {% for m in moves %}
       <tr>
-        <td>{{ m.dt }}</td>
-        <td>{{ 'Livraison' if m.mtype=='delivery' else ('Retour plein' if m.mtype=='return_full' else 'Retour vide') }}</td>
-        <td>{{ m.client.name }}</td>
-        <td>{{ m.beer.name }}</td>
-        <td>{{ m.qty }}</td>
-        <td>{{ '%.2f'|format(m.consigne_per_keg) }}</td>
+        <td>{{ m.dt.isoformat() if m.dt else '' }}</td>
+        <td>
+          {% if m.mtype=='delivery' %}Livraison
+          {% elif m.mtype=='return_full' %}Retour plein
+          {% elif m.mtype=='return_empty' %}Retour vide
+          {% else %}{{ m.mtype }}{% endif %}
+        </td>
+        <td>{{ m.client.name if m.client else '' }}</td>
+        <td>{{ m.beer.name if m.beer else '' }}</td>
+        <td>{{ m.qty or 0 }}</td>
+        <td>{{ ((m.consigne_per_keg or 0)|float)|round(2) }}</td>
         <td>{{ m.notes or '' }}</td>
         <td>
           <form method="post" action="{{ url_for('movement_delete', mid=m.id) }}" onsubmit="return confirm('Supprimer ce mouvement ?');">
