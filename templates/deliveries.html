@@ -8,7 +8,37 @@
 <input class="form-control form-control-sm me-2" name="q" value="{{ request.args.get('q', '') }}" placeholder="Rechercher…" />
 <button class="btn btn-sm btn-outline-light" type="submit">OK</button>
 </form>
-</div>
+</div>{% extends "base.html" %}
+{% block title %}Livraisons — Keg Tracer{% endblock %}
+{% block content %}
+<h1>Livraisons</h1>
+
+<form method="get" style="margin:12px 0">
+  <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Recherche (fournisseur, produit, facture, date)" style="padding:8px;width:60%">
+  <button type="submit" style="padding:8px 12px">Rechercher</button>
+</form>
+
+<table>
+  <thead>
+    <tr><th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th><th>Facture</th></tr>
+  </thead>
+  <tbody>
+  {% for d in deliveries|default([], true) %}
+    <tr>
+      <td>{{ d.date }}</td>
+      <td>{{ d.supplier }}</td>
+      <td>{{ d.product }}</td>
+      <td>{{ d.quantity }}</td>
+      <td>{{ '{:,.2f}'.format((d.deposit|default(0)|float)) }} €</td>
+      <td>{{ d.invoice_no }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="muted">Aucune livraison.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+
 {% set rows = deliveries|default([]) %}
 {% if rows %}
 <div class="table-responsive">
