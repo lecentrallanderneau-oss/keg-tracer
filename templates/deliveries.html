@@ -1,67 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Livraisons — Keg Tracer{% endblock %}
 {% block content %}
-<div class="card p-3">
-<div class="d-flex justify-content-between align-items-center mb-2">
-<div class="card-title h5 mb-0">Historique des livraisons</div>
-<form class="d-flex" method="get">
-<input class="form-control form-control-sm me-2" name="q" value="{{ request.args.get('q', '') }}" placeholder="Rechercher…" />
-<button class="btn btn-sm btn-outline-light" type="submit">OK</button>
-</form>
-</div>{% extends "base.html" %}
-{% block title %}Livraisons — Keg Tracer{% endblock %}
-{% block content %}
-<h1>Livraisons</h1>
-
-<form method="get" style="margin:12px 0">
-  <input type="text" name="q" value="{{ request.args.get('q','') }}" placeholder="Recherche (fournisseur, produit, facture, date)" style="padding:8px;width:60%">
-  <button type="submit" style="padding:8px 12px">Rechercher</button>
-</form>
-
+<h1>Livraisons fournisseur</h1>
+<p class="muted"><a href="/admin/add-delivery">+ Ajouter une livraison</a></p>
 <table>
-  <thead>
-    <tr><th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th><th>Facture</th></tr>
-  </thead>
+  <thead><tr><th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne (€)</th><th>Facture</th></tr></thead>
   <tbody>
-  {% for d in deliveries|default([], true) %}
+  {% for r in deliveries|default([], true) %}
     <tr>
-      <td>{{ d.date }}</td>
-      <td>{{ d.supplier }}</td>
-      <td>{{ d.product }}</td>
-      <td>{{ d.quantity }}</td>
-      <td>{{ '{:,.2f}'.format((d.deposit|default(0)|float)) }} €</td>
-      <td>{{ d.invoice_no }}</td>
+      <td>{{ r.date }}</td>
+      <td>{{ r.supplier }}</td>
+      <td>{{ r.product }}</td>
+      <td>{{ r.quantity }}</td>
+      <td>{{ r.deposit }}</td>
+      <td>{{ r.invoice_no }}</td>
     </tr>
   {% else %}
-    <tr><td colspan="6" class="muted">Aucune livraison.</td></tr>
+    <tr><td colspan="6" class="muted">Aucune livraison enregistrée.</td></tr>
   {% endfor %}
   </tbody>
 </table>
-{% endblock %}
-
-{% set rows = deliveries|default([]) %}
-{% if rows %}
-<div class="table-responsive">
-<table class="table table-sm align-middle">
-<thead>
-<tr><th>Date</th><th>Facture</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne</th></tr>
-</thead>
-<tbody>
-{% for d in rows %}
-<tr>
-<td>{{ d.date|default('—') }}</td>
-<td>{{ d.invoice_no|default('—') }}</td>
-<td>{{ d.supplier|default('—') }}</td>
-<td>{{ d.product|default('—') }}</td>
-<td>{{ d.quantity|default(0) }}</td>
-<td>{{ '{:,.2f}'.format((d.deposit|default(0)|float)) }} €</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-{% else %}
-<div class="empty">Aucune livraison trouvée.</div>
-{% endif %}
-</div>
 {% endblock %}
