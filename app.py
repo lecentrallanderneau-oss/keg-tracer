@@ -12,23 +12,18 @@ def _normalize_db_url(raw: str) -> str:
     if not raw:
         return ""
     raw = raw.strip()
-    # Render/Neon/Supabase donnent parfois 'postgres://'
     if raw.startswith("postgres://"):
         return "postgresql+psycopg://" + raw[len("postgres://"):]
-    # Si déjà en postgresql://, on ajoute +psycopg
-    if raw.startswith("postgresql://"):
+    if raw.startswith("postgresql://") and not raw.startswith("postgresql+psycopg://"):
         return "postgresql+psycopg://" + raw[len("postgresql://"):]
-    # Si l'utilisateur a déjà mis postgresql+psycopg:// on laisse tel quel
     return raw
 
 _db_url_env = os.getenv("DATABASE_URL", "")
-db_url = _normalize_db_url(_db_url_env)
+db_url = _normalize_db_url(__db_url_env)
 
 if db_url:
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 else:
-    # Fallback local/éphémère (sur Render sans disque persistant)
-    # Pour un stockage persistant en SQLite, monte un Disk et utilise p.ex. 'sqlite:////var/data/kegs.db'
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kegs.db"
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -62,7 +57,7 @@ class Movement(db.Model):
     client = db.relationship('Client')
     beer = db.relationship('Beer')
 
-# --------- Init DB & seed (compatible Flask 3.x) ----------
+# --------- Init DB & seed ----------
 def seed_if_empty():
     if not Client.query.first():
         db.session.add_all([
@@ -148,7 +143,7 @@ def del_client(cid):
     db.session.commit()
     return redirect(url_for('clients'))
 
-# ---- Beers ----
+# ---- Bières ----
 @app.route('/beers')
 def beers():
     beers = Beer.query.order_by(Beer.name).all()
@@ -170,7 +165,7 @@ def del_beer(bid):
     db.session.commit()
     return redirect(url_for('beers'))
 
-# ---- Movements ----
+# ---- Mouvements ----
 @app.route('/movements')
 def movements():
     q = Movement.query.order_by(Movement.dt.desc(), Movement.id.desc()).limit(200).all()
@@ -180,22 +175,11 @@ def movements():
 
 @app.route('/movements/add', methods=['GET', 'POST'])
 def movement_add():
+    """Affiche le formulaire. La création se fait via /api/movement (JS), on ignore le POST HTML."""
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
     if request.method == 'POST':
-        dt = request.form.get('dt') or date.today().isoformat()
-        mtype = request.form.get('mtype')
-        client_id = int(request.form.get('client_id'))
-        beer_id = int(request.form.get('beer_id'))
-        qty = int(request.form.get('qty') or 1)
-        consigne = float(request.form.get('consigne_per_keg') or 0)
-        notes = request.form.get('notes', '')
-        mv = Movement(dt=datetime.fromisoformat(dt).date(),
-                      mtype=mtype, client_id=client_id, beer_id=beer_id,
-                      qty=qty, consigne_per_keg=consigne, notes=notes)
-        db.session.add(mv)
-        db.session.commit()
-        flash('Mouvement enregistré.')
+        # On NE crée PAS ici pour éviter les doublons (PWA gère via /api/movement).
         return redirect(url_for('movements'))
     return render_template('movement_form.html', clients=clients, beers=beers)
 
@@ -291,7 +275,8 @@ def api_movement():
             consigne_per_keg=float(data.get('consigne_per_keg', 0)),
             notes=data.get('notes', '')
         )
-        db.session.add(mv); db.session.commit()
+        db.session.add(mv)
+        db.session.commit()
         return jsonify({'ok': True, 'id': mv.id})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)}), 400
