@@ -1,1 +1,53 @@
-{% extends "base.html" %}{% block title %}Dashboard{% endblock %}{% block content %}OK index{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Keg Tracer{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Keg Tracer Dashboard</h1>
+  <p>Bienvenue sur ton application de suivi des fûts 🍺</p>
+
+  <section>
+    <h2>Dernières livraisons</h2>
+    <ul>
+      {% for delivery in deliveries|default([], true) %}
+        <li>
+          <strong>{{ delivery.date }}</strong> — {{ delivery.kegs }} fûts reçus
+        </li>
+      {% else %}
+        <li>Aucune livraison enregistrée</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>Stock de fûts</h2>
+    <table border="1" cellpadding="6">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Produit</th>
+          <th>Contenance</th>
+          <th>État</th>
+          <th>Localisation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for keg in kegs|default([], true) %}
+        <tr>
+          <td>{{ keg.id }}</td>
+          <td>{{ keg.product }}</td>
+          <td>{{ keg.size_l }} L</td>
+          <td>{{ keg.status }}</td>
+          <td>{{ keg.location }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5">Aucun fût trouvé</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}
