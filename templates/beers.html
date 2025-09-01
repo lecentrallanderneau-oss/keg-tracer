@@ -1,44 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Bières · Suivi des Fûts{% endblock %}
 {% block content %}
-<h1 class="page-title">Bières</h1>
+<h1 class="title">Bières</h1>
 
-<section class="grid-2">
-  <div class="card">
-    <div class="card-header"><h2>Ajouter une bière</h2></div>
-    <form method="post" action="{{ url_for('add_beer') }}" class="form">
-      <label>Nom
-        <input type="text" name="name" required>
-      </label>
-      <label>Volume (L)
-        <input type="number" name="size_l" min="1" value="30">
-      </label>
-      <div class="form-actions">
-        <button class="btn">Ajouter</button>
-      </div>
+<form method="post" class="form">
+  <label>Nom de la bière</label>
+  <input type="text" name="name" placeholder="Ex: IPA Maison" required>
+  <button class="btn primary" type="submit">Ajouter</button>
+</form>
+
+<ul class="list">
+  {% for b in items %}
+  <li class="row">
+    <span>{{ b.name }}</span>
+    <form method="post" action="{{ url_for('beer_delete', bid=b.id) }}" onsubmit="return confirm('Supprimer cette bière ?');">
+      <button class="btn danger" type="submit">Supprimer</button>
     </form>
-  </div>
-
-  <div class="card">
-    <div class="card-header"><h2>Catalogue</h2></div>
-    <div class="table-responsive">
-      <table class="table">
-        <thead><tr><th>Nom</th><th class="num">Volume</th><th></th></tr></thead>
-        <tbody>
-        {% for b in beers %}
-          <tr>
-            <td>{{ b.name }}</td>
-            <td class="num">{{ b.size_l }} L</td>
-            <td class="actions">
-              <form method="post" action="{{ url_for('del_beer', bid=b.id) }}" onsubmit="return confirm('Supprimer cette bière ?');">
-                <button class="btn danger" title="Supprimer">✕</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+  </li>
+  {% else %}
+  <li class="row muted">Aucune bière.</li>
+  {% endfor %}
+</ul>
 {% endblock %}
