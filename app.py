@@ -65,4 +65,8 @@ DELIVERIES: List[Dict[str, Any]] = [
 ]
 
 KEGS: List[Dict[str, Any]] = [
-    {"id": "K-001", "product": "Blonde 30L", "size_l": 30, "status": "full", "location": "C_
+    {"id": "K-001", "product": "Blonde 30L", "size_l": 30, "status": "full", "location": "Chai", "updated_at": "2025-08-28"},
+    {"id": "K-002", "product": "IPA 20L", "size_l": 20, "status": "empty", "location": "Bar", "updated_at": "2025-08-29"},
+    {"id": "K-003", "product": "Ambrée 30L", "size_l": 30, "status": "lost", "location": "Inconnu", "updated_at": "2025-07-31"},
+]
+
