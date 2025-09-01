@@ -1,52 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Clients · Suivi des Fûts{% endblock %}
 {% block content %}
-<h1 class="page-title">Clients</h1>
+<h1 class="title">Clients</h1>
 
-<section class="grid-2">
-  <div class="card">
-    <div class="card-header"><h2>Ajouter un client</h2></div>
-    <form method="post" action="{{ url_for('add_client') }}" class="form">
-      <label>Nom
-        <input type="text" name="name" required>
-      </label>
-      <label>Adresse
-        <input type="text" name="address">
-      </label>
-      <label>Email
-        <input type="email" name="email">
-      </label>
-      <label>SIRET
-        <input type="text" name="siret">
-      </label>
-      <div class="form-actions">
-        <button class="btn">Ajouter</button>
-      </div>
+<form method="post" class="form">
+  <label>Nom du client</label>
+  <input type="text" name="name" placeholder="Ex: Bar du Port" required>
+  <button class="btn primary" type="submit">Ajouter</button>
+</form>
+
+<ul class="list">
+  {% for c in items %}
+  <li class="row">
+    <span>{{ c.name }}</span>
+    <form method="post" action="{{ url_for('client_delete', cid=c.id) }}" onsubmit="return confirm('Supprimer ce client ?');">
+      <button class="btn danger" type="submit">Supprimer</button>
     </form>
-  </div>
-
-  <div class="card">
-    <div class="card-header"><h2>Liste</h2></div>
-    <div class="table-responsive">
-      <table class="table">
-        <thead><tr><th>Nom</th><th>Adresse</th><th>Email</th><th>SIRET</th><th></th></tr></thead>
-        <tbody>
-        {% for c in clients %}
-          <tr>
-            <td>{{ c.name }}</td>
-            <td class="truncate">{{ c.address or "—" }}</td>
-            <td class="truncate">{{ c.email or "—" }}</td>
-            <td>{{ c.siret or "—" }}</td>
-            <td class="actions">
-              <form method="post" action="{{ url_for('del_client', cid=c.id) }}" onsubmit="return confirm('Supprimer ce client ?');">
-                <button class="btn danger" title="Supprimer">✕</button>
-              </form>
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+  </li>
+  {% else %}
+  <li class="row muted">Aucun client.</li>
+  {% endfor %}
+</ul>
 {% endblock %}
