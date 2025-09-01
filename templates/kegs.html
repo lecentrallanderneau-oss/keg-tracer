@@ -1,1 +1,37 @@
-
+{% extends "base.html" %}
+{% block title %}Fûts — Keg Tracer{% endblock %}
+{% block content %}
+<div class="card p-3">
+<div class="d-flex justify-content-between align-items-center mb-2">
+<div class="card-title h5 mb-0">Inventaire des fûts</div>
+<div class="muted">Total: {{ total_kegs|default(0) }}</div>
+</div>
+{% set rows = kegs|default([]) %}
+{% if rows %}
+<div class="table-responsive">
+<table class="table table-sm align-middle">
+<thead>
+<tr><th>ID Fût</th><th>Produit</th><th>Capacité</th><th>Statut</th><th>Emplacement</th><th>MAJ</th></tr>
+</thead>
+<tbody>
+{% for k in rows %}
+{% set st = (k.status|default('unknown')) %}
+<tr>
+<td>{{ k.id|default('—') }}</td>
+<td>{{ k.product|default('—') }}</td>
+<td>{{ k.size_l|default(0) }} L</td>
+<td>
+<span class="badge bg-{% if st=='full' %}success{% elif st=='empty' %}secondary{% elif st=='lost' %}danger{% else %}warning{% endif %}">{{ st }}</span>
+</td>
+<td>{{ k.location|default('—') }}</td>
+<td>{{ k.updated_at|default('—') }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="empty">Aucun fût à afficher.</div>
+{% endif %}
+</div>
+{% endblock %}
