@@ -1,23 +1,66 @@
 {% extends "base.html" %}
-{% block title %}Livraisons — Keg Tracer{% endblock %}
 {% block content %}
-<h1>Livraisons fournisseur</h1>
-<p class="muted"><a href="/admin/add-delivery">+ Ajouter une livraison</a></p>
+<h2>Livraisons / Retours</h2>
+
+<div class="card" style="margin-bottom:16px;">
+  <form method="post" action="{{ url_for('add_delivery') }}">
+    <div class="grid" style="grid-template-columns: repeat(6, 1fr) auto;">
+      <div>
+        <label for="date">Date</label><br>
+        <input type="date" id="date" name="date" value="{{ (now or none) }}">
+      </div>
+      <div>
+        <label for="client_id">Client ID</label><br>
+        <input type="text" id="client_id" name="client_id" placeholder="C-001">
+      </div>
+      <div>
+        <label for="supplier">Fournisseur</label><br>
+        <input type="text" id="supplier" name="supplier">
+      </div>
+      <div>
+        <label for="product">Produit</label><br>
+        <input type="text" id="product" name="product">
+      </div>
+      <div>
+        <label for="quantity">Qté (fûts)</label><br>
+        <input type="number" id="quantity" name="quantity" value="1">
+      </div>
+      <div>
+        <label for="deposit">Consigne (€)</label><br>
+        <input type="number" step="0.01" id="deposit" name="deposit" value="0">
+      </div>
+      <div>
+        <label for="invoice_no">Facture</label><br>
+        <input type="text" id="invoice_no" name="invoice_no">
+      </div>
+      <div style="align-self:end;">
+        <button class="btn btn-primary" type="submit">Ajouter</button>
+      </div>
+    </div>
+    <p style="margin-top:8px;color:#666;">Astuce : utilisez une quantité négative pour une reprise (ex. -2).</p>
+  </form>
+</div>
+
 <table>
-  <thead><tr><th>Date</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne (€)</th><th>Facture</th></tr></thead>
-  <tbody>
-  {% for r in deliveries|default([], true) %}
+  <thead>
     <tr>
-      <td>{{ r.date }}</td>
-      <td>{{ r.supplier }}</td>
-      <td>{{ r.product }}</td>
-      <td>{{ r.quantity }}</td>
-      <td>{{ r.deposit }}</td>
-      <td>{{ r.invoice_no }}</td>
+      <th>Date</th><th>Client</th><th>Fournisseur</th><th>Produit</th><th>Qté</th><th>Consigne (€)</th><th>Facture</th>
     </tr>
-  {% else %}
-    <tr><td colspan="6" class="muted">Aucune livraison enregistrée.</td></tr>
-  {% endfor %}
+  </thead>
+  <tbody>
+    {% for d in deliveries %}
+      <tr>
+        <td>{{ d.date.strftime("%Y-%m-%d") if d.date else "—" }}</td>
+        <td>{{ d.client_id or "—" }}</td>
+        <td>{{ d.supplier or "—" }}</td>
+        <td>{{ d.product or "—" }}</td>
+        <td>{{ d.quantity }}</td>
+        <td>{{ "%.2f"|format(d.deposit) }}</td>
+        <td>{{ d.invoice_no or "—" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">Aucune livraison.</td></tr>
+    {% endfor %}
   </tbody>
 </table>
 {% endblock %}
