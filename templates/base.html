@@ -1,64 +1,36 @@
 <!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>{% block title %}Suivi des Fûts{% endblock %}</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-  <meta name="theme-color" content="#0f172a" />
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-192.png') }}">
-
-  <!-- Styles -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <style>
-    /* petite aide pour la zone de messages */
-    .flash { background:#ecfccb; color:#3f6212; border:1px solid #a3e635; padding:10px 12px; border-radius:10px; margin:12px 0; }
-  </style>
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#0f766e">
 </head>
 <body>
-
-  <!-- AppBar / Menu -->
-  <header class="appbar">
-    <div class="brand">
-      <span class="emoji">🍺</span>
-      <span class="title">Suivi des Fûts</span>
-    </div>
-
-    <button class="nav-toggle" aria-label="Menu" onclick="document.body.classList.toggle('nav-open')">☰</button>
-
-    <nav class="nav-panel">
-      <a href="{{ url_for('index') }}">Tableau de bord</a>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}">🍺 Keg Tracer</a>
+    <nav class="nav">
+      <a href="{{ url_for('movements') }}">Mouvements</a>
       <a href="{{ url_for('clients') }}">Clients</a>
       <a href="{{ url_for('beers') }}">Bières</a>
-      <a href="{{ url_for('movements') }}">Mouvements</a>
-      <a href="{{ url_for('movement_add') }}">+ Ajouter</a>
       <a href="{{ url_for('report') }}">Rapports</a>
-      <a id="sync-btn" href="#" class="sync">Sync <span id="sync-badge"></span></a>
     </nav>
   </header>
 
-  <main>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for m in messages %}<div class="flash">{{ m }}</div>{% endfor %}
+  <main class="container">
+    {% with msgs = get_flashed_messages() %}
+      {% if msgs %}
+        <div class="flash">
+          {% for m in msgs %}<div>{{ m }}</div>{% endfor %}
+        </div>
       {% endif %}
     {% endwith %}
 
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Tabbar mobile -->
-  <nav class="tabbar">
-    <a href="{{ url_for('index') }}">🏠<span>Accueil</span></a>
-    <a href="{{ url_for('clients') }}">👤<span>Clients</span></a>
-    <a href="{{ url_for('beers') }}">🍺<span>Bières</span></a>
-    <a href="{{ url_for('movements') }}">📦<span>Mouvts</span></a>
-    <a href="{{ url_for('movement_add') }}" class="fab">＋</a>
-  </nav>
-
-  <!-- JS (cache-busting v=3 pour forcer la mise à jour) -->
-  <script src="{{ url_for('static', filename='pwa.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='pwa.js', v=3) }}"></script>
 </body>
 </html>
