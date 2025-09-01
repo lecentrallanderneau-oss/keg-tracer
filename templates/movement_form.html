@@ -2,51 +2,54 @@
 {% block title %}Nouveau Mouvement · Suivi des Fûts{% endblock %}
 {% block content %}
 
-<h2>Ajouter un Mouvement</h2>
+<h1 class="page-title">Ajouter un mouvement</h1>
 
-<form method="post" style="display:grid; gap:12px; max-width:600px;">
-  <div>
-    <label for="dt">Date</label>
-    <input type="date" id="dt" name="dt" value="{{ today_iso }}" required>
+<form method="post" class="card form-grid">
+  <div class="grid-3">
+    <label>Date
+      <input type="date" id="dt" name="dt" value="{{ today_iso }}" required>
+    </label>
+    <label>Type
+      <select id="mtype" name="mtype" required>
+        <option value="delivery">Livraison</option>
+        <option value="return_full">Retour plein</option>
+        <option value="return_empty">Retour vide</option>
+      </select>
+    </label>
+    <label>Quantité
+      <input type="number" id="qty" name="qty" value="1" min="1" required>
+    </label>
   </div>
-  <div>
-    <label for="mtype">Type</label>
-    <select id="mtype" name="mtype" required>
-      <option value="delivery">Livraison</option>
-      <option value="return_full">Retour plein</option>
-      <option value="return_empty">Retour vide</option>
-    </select>
+
+  <div class="grid-2">
+    <label>Client
+      <select id="client_id" name="client_id" required>
+        {% for c in clients %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Bière
+      <select id="beer_id" name="beer_id" required>
+        {% for b in beers %}
+          <option value="{{ b.id }}">{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
   </div>
-  <div>
-    <label for="client_id">Client</label>
-    <select id="client_id" name="client_id" required>
-      {% for c in clients %}
-        <option value="{{ c.id }}">{{ c.name }}</option>
-      {% endfor %}
-    </select>
+
+  <div class="grid-2">
+    <label>Consigne / fût (€)
+      <input type="number" step="0.01" id="consigne_per_keg" name="consigne_per_keg" value="0">
+    </label>
+    <label>Notes
+      <input type="text" id="notes" name="notes" placeholder="Optionnel">
+    </label>
   </div>
-  <div>
-    <label for="beer_id">Bière</label>
-    <select id="beer_id" name="beer_id" required>
-      {% for b in beers %}
-        <option value="{{ b.id }}">{{ b.name }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div>
-    <label for="qty">Quantité</label>
-    <input type="number" id="qty" name="qty" value="1" min="1" required>
-  </div>
-  <div>
-    <label for="consigne_per_keg">Consigne / fût (€)</label>
-    <input type="number" step="0.01" id="consigne_per_keg" name="consigne_per_keg" value="0">
-  </div>
-  <div>
-    <label for="notes">Notes</label>
-    <textarea id="notes" name="notes"></textarea>
-  </div>
-  <div>
-    <button type="submit">Enregistrer</button>
+
+  <div class="form-actions end">
+    <a href="{{ url_for('movements') }}" class="btn">Annuler</a>
+    <button class="btn primary">Enregistrer</button>
   </div>
 </form>
 
