@@ -5,12 +5,38 @@ from datetime import datetime, date, timedelta
 import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///kegs.db').replace('postgres://','postgresql://')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'change-me'
+
+# --------- Config BDD (Postgres psycopg v3 ou SQLite fallback) ----------
+def _normalize_db_url(raw: str) -> str:
+    """Accepte postgres:// ou postgresql:// et force le driver psycopg v3."""
+    if not raw:
+        return ""
+    raw = raw.strip()
+    # Render/Neon/Supabase donnent parfois 'postgres://'
+    if raw.startswith("postgres://"):
+        return "postgresql+psycopg://" + raw[len("postgres://"):]
+    # Si déjà en postgresql://, on ajoute +psycopg
+    if raw.startswith("postgresql://"):
+        return "postgresql+psycopg://" + raw[len("postgresql://"):]
+    # Si l'utilisateur a déjà mis postgresql+psycopg:// on laisse tel quel
+    return raw
+
+_db_url_env = os.getenv("DATABASE_URL", "")
+db_url = _normalize_db_url(_db_url_env)
+
+if db_url:
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+else:
+    # Fallback local/éphémère (sur Render sans disque persistant)
+    # Pour un stockage persistant en SQLite, monte un Disk et utilise p.ex. 'sqlite:////var/data/kegs.db'
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///kegs.db"
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SECRET_KEY"] = "change-me"
+
 db = SQLAlchemy(app)
 
-# --- Models ---
+# --------- Modèles ----------
 class Client(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False, unique=True)
@@ -30,47 +56,54 @@ class Movement(db.Model):
     beer_id = db.Column(db.Integer, db.ForeignKey('beer.id'), nullable=False)
     mtype = db.Column(db.String(20), nullable=False)  # delivery / return_full / return_empty
     qty = db.Column(db.Integer, nullable=False, default=1)
-    consigne_per_keg = db.Column(db.Numeric(10,2), nullable=False, default=0)
+    consigne_per_keg = db.Column(db.Numeric(10, 2), nullable=False, default=0)
     notes = db.Column(db.Text)
 
     client = db.relationship('Client')
     beer = db.relationship('Beer')
 
-# --- Init DB (compatible Flask 3.1+) ---
+# --------- Init DB & seed (compatible Flask 3.x) ----------
 def seed_if_empty():
     if not Client.query.first():
-        db.session.add_all([Client(name="Client A"), Client(name="Client B"), Client(name="Client C")])
+        db.session.add_all([
+            Client(name="Client A"),
+            Client(name="Client B"),
+            Client(name="Client C")
+        ])
         db.session.commit()
     if not Beer.query.first():
-        db.session.add_all([Beer(name="Blonde 30L", size_l=30), Beer(name="IPA 20L", size_l=20)])
+        db.session.add_all([
+            Beer(name="Blonde 30L", size_l=30),
+            Beer(name="IPA 20L", size_l=20)
+        ])
         db.session.commit()
 
 with app.app_context():
     db.create_all()
     seed_if_empty()
 
-# --- Routes ---
+# --------- Routes ----------
 @app.route('/')
 def index():
-    deliveries = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype=='delivery').scalar() or 0
-    ret_full   = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype=='return_full').scalar() or 0
-    ret_empty  = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype=='return_empty').scalar() or 0
+    deliveries = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype == 'delivery').scalar() or 0
+    ret_full   = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype == 'return_full').scalar() or 0
+    ret_empty  = db.session.query(func.sum(Movement.qty)).filter(Movement.mtype == 'return_empty').scalar() or 0
 
     outstanding_kegs = deliveries - ret_full
     outstanding_empties = deliveries - ret_empty
     outstanding_consigne = (db.session.query(
-        (func.coalesce(func.sum(case((Movement.mtype=='delivery', Movement.qty*Movement.consigne_per_keg), else_=0)),0) -
-         func.coalesce(func.sum(case((Movement.mtype=='return_empty', Movement.qty*Movement.consigne_per_keg), else_=0)),0))
+        (func.coalesce(func.sum(case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)), 0) -
+         func.coalesce(func.sum(case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)), 0))
     ).scalar() or 0)
 
     clients = Client.query.order_by(Client.name).all()
     per_client = []
     for c in clients:
-        d  = db.session.query(func.coalesce(func.sum(Movement.qty),0)).filter(Movement.client_id==c.id, Movement.mtype=='delivery').scalar() or 0
-        rf = db.session.query(func.coalesce(func.sum(Movement.qty),0)).filter(Movement.client_id==c.id, Movement.mtype=='return_full').scalar() or 0
-        re = db.session.query(func.coalesce(func.sum(Movement.qty),0)).filter(Movement.client_id==c.id, Movement.mtype=='return_empty').scalar() or 0
-        cons_charge = db.session.query(func.coalesce(func.sum(case((Movement.mtype=='delivery', Movement.qty*Movement.consigne_per_keg), else_=0)),0)).filter(Movement.client_id==c.id).scalar() or 0
-        cons_refund = db.session.query(func.coalesce(func.sum(case((Movement.mtype=='return_empty', Movement.qty*Movement.consigne_per_keg), else_=0)),0)).filter(Movement.client_id==c.id).scalar() or 0
+        d  = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'delivery').scalar() or 0
+        rf = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'return_full').scalar() or 0
+        re = db.session.query(func.coalesce(func.sum(Movement.qty), 0)).filter(Movement.client_id == c.id, Movement.mtype == 'return_empty').scalar() or 0
+        cons_charge = db.session.query(func.coalesce(func.sum(case((Movement.mtype == 'delivery', Movement.qty * Movement.consigne_per_keg), else_=0)), 0)).filter(Movement.client_id == c.id).scalar() or 0
+        cons_refund = db.session.query(func.coalesce(func.sum(case((Movement.mtype == 'return_empty', Movement.qty * Movement.consigne_per_keg), else_=0)), 0)).filter(Movement.client_id == c.id).scalar() or 0
         per_client.append({
             'client': c,
             'delivered': int(d),
@@ -100,9 +133,9 @@ def clients():
 @app.route('/clients/add', methods=['POST'])
 def add_client():
     name = request.form['name'].strip()
-    address = request.form.get('address','').strip()
-    email = request.form.get('email','').strip()
-    siret = request.form.get('siret','').strip()
+    address = request.form.get('address', '').strip()
+    email = request.form.get('email', '').strip()
+    siret = request.form.get('siret', '').strip()
     if name:
         db.session.add(Client(name=name, address=address, email=email, siret=siret))
         db.session.commit()
@@ -145,7 +178,7 @@ def movements():
     beers = Beer.query.order_by(Beer.name).all()
     return render_template('movements.html', moves=q, clients=clients, beers=beers)
 
-@app.route('/movements/add', methods=['GET','POST'])
+@app.route('/movements/add', methods=['GET', 'POST'])
 def movement_add():
     clients = Client.query.order_by(Client.name).all()
     beers = Beer.query.order_by(Beer.name).all()
@@ -156,7 +189,7 @@ def movement_add():
         beer_id = int(request.form.get('beer_id'))
         qty = int(request.form.get('qty') or 1)
         consigne = float(request.form.get('consigne_per_keg') or 0)
-        notes = request.form.get('notes','')
+        notes = request.form.get('notes', '')
         mv = Movement(dt=datetime.fromisoformat(dt).date(),
                       mtype=mtype, client_id=client_id, beer_id=beer_id,
                       qty=qty, consigne_per_keg=consigne, notes=notes)
@@ -207,16 +240,16 @@ def report():
 
     moves = q.order_by(Movement.dt.asc()).all()
 
-    delivered = sum(m.qty for m in moves if m.mtype=='delivery')
-    returned_full = sum(m.qty for m in moves if m.mtype=='return_full')
-    returned_empty = sum(m.qty for m in moves if m.mtype=='return_empty')
-    consigne_charged = sum(float(m.qty)*float(m.consigne_per_keg) for m in moves if m.mtype=='delivery')
-    consigne_refunded = sum(float(m.qty)*float(m.consigne_per_keg) for m in moves if m.mtype=='return_empty')
+    delivered = sum(m.qty for m in moves if m.mtype == 'delivery')
+    returned_full = sum(m.qty for m in moves if m.mtype == 'return_full')
+    returned_empty = sum(m.qty for m in moves if m.mtype == 'return_empty')
+    consigne_charged = sum(float(m.qty) * float(m.consigne_per_keg) for m in moves if m.mtype == 'delivery')
+    consigne_refunded = sum(float(m.qty) * float(m.consigne_per_keg) for m in moves if m.mtype == 'return_empty')
 
     breakdown = {}
     for m in moves:
         key = m.beer.name
-        breakdown.setdefault(key, {'delivered':0,'returned_full':0,'returned_empty':0})
+        breakdown.setdefault(key, {'delivered': 0, 'returned_full': 0, 'returned_empty': 0})
         if m.mtype == 'delivery':
             breakdown[key]['delivered'] += m.qty
         elif m.mtype == 'return_full':
@@ -254,9 +287,9 @@ def api_movement():
             mtype=data['mtype'],
             client_id=int(data['client_id']),
             beer_id=int(data['beer_id']),
-            qty=int(data.get('qty',1)),
-            consigne_per_keg=float(data.get('consigne_per_keg',0)),
-            notes=data.get('notes','')
+            qty=int(data.get('qty', 1)),
+            consigne_per_keg=float(data.get('consigne_per_keg', 0)),
+            notes=data.get('notes', '')
         )
         db.session.add(mv); db.session.commit()
         return jsonify({'ok': True, 'id': mv.id})
