@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Tableau de bord</h2>
-<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(180px,1fr));">
-  <div class="card"><div>Total consigne</div><div style="font-size:1.6rem;font-weight:700;">{{ "%.2f"|format(consigne_balance) }} €</div></div>
-  <div class="card"><div>Clients</div><div style="font-size:1.6rem;font-weight:700;">{{ client_count }}</div></div>
-  <div class="card"><div>Produits actifs</div><div style="font-size:1.6rem;font-weight:700;">{{ product_count }}</div></div>
-  <div class="card"><div>Livraisons</div><div style="font-size:1.6rem;font-weight:700;">{{ delivery_count }}</div></div>
-  <div class="card"><div>Fûts</div><div style="font-size:1.6rem;font-weight:700;">{{ keg_count }}</div></div>
-</div>
+<h1>Bienvenue 👋</h1>
+<p>Solde consigne estimé : <strong>{{ "%.2f"|format(consigne_balance) }} €</strong></p>
+<ul>
+  <li>Clients : {{ clients_count }}</li>
+  <li>Livraisons : {{ deliveries_count }}</li>
+  <li>Fûts : {{ kegs_count }}</li>
+  <li>Produits : {{ products_count }}</li>
+</ul>
 {% endblock %}
