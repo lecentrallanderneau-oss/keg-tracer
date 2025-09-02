@@ -1,51 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Fûts</h2>
-
-<div class="card" style="margin-bottom:16px;">
-  <form method="post" action="{{ url_for('add_keg') }}">
-    <div class="grid" style="grid-template-columns: 2fr 1fr 1fr 2fr auto;">
-      <div>
-        <label for="product">Produit</label><br>
-        <input type="text" id="product" name="product">
-      </div>
-      <div>
-        <label for="size_l">Taille (L)</label><br>
-        <input type="number" id="size_l" name="size_l" value="30" min="1">
-      </div>
-      <div>
-        <label for="status">Statut</label><br>
-        <select id="status" name="status">
-          <option value="stock">stock</option>
-          <option value="chez_client">chez_client</option>
-          <option value="vide">vide</option>
-          <option value="autre">autre</option>
-        </select>
-      </div>
-      <div>
-        <label for="location">Lieu</label><br>
-        <input type="text" id="location" name="location" placeholder="Entrepôt / Client...">
-      </div>
-      <div style="align-self:end;">
-        <button class="btn btn-primary" type="submit">Ajouter</button>
-      </div>
-    </div>
-  </form>
-</div>
-
+<h1>Fûts</h1>
 <table>
-  <thead>
-    <tr><th>ID</th><th>Produit</th><th>Taille</th><th>Statut</th><th>Lieu</th><th>MAJ</th></tr>
-  </thead>
+  <thead><tr><th>ID</th><th>Produit</th><th>Taille (L)</th><th>Statut</th><th>Emplacement</th><th>Maj</th></tr></thead>
   <tbody>
-    {% for k in kegs %}
+    {% for keg in kegs %}
       <tr>
-        <td>{{ k.id }}</td>
-        <td>{{ k.product or "—" }}</td>
-        <td>{{ k.size_l }} L</td>
-        <td>{{ k.status }}</td>
-        <td>{{ k.location or "—" }}</td>
-        <td>{{ k.updated_at.strftime("%Y-%m-%d %H:%M") if k.updated_at else "—" }}</td>
+        <td>{{ keg.id }}</td>
+        <td>{{ keg.product }}</td>
+        <td>{{ keg.size_l }}</td>
+        <td>{{ keg.status }}</td>
+        <td>{{ keg.location or "—" }}</td>
+        <td>{{ keg.updated_at or "—" }}</td>
       </tr>
     {% else %}
       <tr><td colspan="6">Aucun fût.</td></tr>
