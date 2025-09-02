@@ -1,45 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Clients</h2>
-
-<div class="card" style="margin-bottom:16px;">
-  <form method="post" action="{{ url_for('add_client') }}">
-    <div class="grid" style="grid-template-columns: 1fr 2fr auto;">
-      <div>
-        <label for="id">ID client (ex. C-001)</label><br>
-        <input type="text" name="id" id="id" required>
-      </div>
-      <div>
-        <label for="name">Nom</label><br>
-        <input type="text" name="name" id="name" required>
-      </div>
-      <div style="align-self:end;">
-        <button class="btn btn-primary" type="submit">Ajouter</button>
-      </div>
-    </div>
-  </form>
-</div>
-
+<h1>Clients</h1>
 <table>
-  <thead>
-    <tr><th>ID</th><th>Nom</th><th>Actions</th></tr>
-  </thead>
+  <thead><tr><th>ID</th><th>Nom</th><th>Actions</th></tr></thead>
   <tbody>
     {% for client in clients %}
-    <tr>
-      <td>{{ client.id }}</td>
-      <td>{{ client.name }}</td>
-      <td>
-        <form class="inline" action="{{ url_for('delete_client', client_id=client.id) }}" method="post">
-          <button type="submit" class="btn btn-danger btn-sm"
-                  onclick="return confirm('Supprimer ce client et ses livraisons ?');">
-            Supprimer
-          </button>
-        </form>
-      </td>
-    </tr>
+      <tr>
+        <td>{{ client.id }}</td>
+        <td>{{ client.name }}</td>
+        <td>
+          <form class="inline" action="{{ url_for('delete_client', client_id=client.id) }}" method="post" onsubmit="return confirm('Supprimer {{ client.name }} ?');">
+            <button class="btn btn-danger" type="submit">Supprimer</button>
+          </form>
+        </td>
+      </tr>
     {% else %}
-    <tr><td colspan="3">Aucun client.</td></tr>
+      <tr><td colspan="3">Aucun client pour le moment.</td></tr>
     {% endfor %}
   </tbody>
 </table>
