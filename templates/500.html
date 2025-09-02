@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Erreur serveur{% endblock %}
-{% block content %}
-<h1>Erreur serveur</h1>
-<p>Une erreur est survenue.</p>
-<p class="muted">ID erreur : {{ error_id|default('') }}</p>
-<p><a href="/">← Retour au dashboard</a></p>
-{% endblock %}
